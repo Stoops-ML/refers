@@ -22,3 +22,15 @@ COMMENT_SYMBOL = {
     ".tex": "%",
     ".m": "%",
 }
+OPTIONS = [
+    ":blank",
+    ":quote",
+    ":quotecode",
+    ":fulllinkline",
+    ":fulllink",
+    ":linkline",
+    ":link",
+    ":line",
+    ":file",
+    ":p",
+]

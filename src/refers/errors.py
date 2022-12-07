@@ -10,6 +10,10 @@ class TagNotFoundError(Exception):
     pass
 
 
+class OptionNotFoundError(Exception):
+    pass
+
+
 class DocumentAlreadyExistsError(Exception):
     pass
 

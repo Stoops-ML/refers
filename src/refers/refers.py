@@ -4,6 +4,7 @@ from refers.errors import (
     MultipleTagsInOneLine,
     TagNotFoundError,
     PyprojectNotFound,
+    OptionNotFoundError,
 )
 from typing import Dict
 from typing import Optional
@@ -19,6 +20,7 @@ from refers.definitions import (
     DOC_OUT_ID,
     LIBRARY_NAME,
     COMMENT_SYMBOL,
+    OPTIONS,
 )
 import toml
 
@@ -101,7 +103,15 @@ def replace_tags(
                 for re_tag in re_tags:
                     ref_found = True
                     tag, option = re_tag.group(1), re_tag.group(2)
-                    if option is None and tag in tags.keys():
+
+                    # replace ref with tag:option
+                    if tag not in tags.keys() and not allow_not_found_tags:
+                        raise TagNotFoundError(
+                            f"Tag {tag} not found. Possible tags: {list(tags.keys())}"
+                        )
+                    elif tag not in tags.keys() and allow_not_found_tags:
+                        rep = UNKNOWN_ID
+                    elif option is None:
                         rep = tags[tag][0].name + " L" + str(tags[tag][1])
                     elif option == ":quote":
                         rep = tags[tag][2]
@@ -133,18 +143,16 @@ def replace_tags(
                         rep = str(tags[tag][1])
                     elif option == ":file":
                         rep = tags[tag][0].name
-                    elif option is not None and re.search(r"^:p+$", option) is not None:
+                    elif re.search(r"^:p+$", option) is not None:
                         rep = (
                             tags[tag][0].parent.relative_to(
                                 tags[tag][0].parents[option.count("p")]
                             )
                             / tags[tag][0].name
                         ).as_posix()
-                    elif allow_not_found_tags:
-                        rep = UNKNOWN_ID
                     else:
-                        raise TagNotFoundError(
-                            f"Tag {tag} and keyword {option} not found. Possible Tags and keywords: {tags}"
+                        raise OptionNotFoundError(
+                            f"Option {option} of tag {tag} not found. Possible options: {OPTIONS}"
                         )
                     line = re.sub(rf"{re_tag.group(0)}(?![a-zA-Z:])", rep, line)
                 w_doc.write(line)
