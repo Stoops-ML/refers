@@ -198,44 +198,55 @@ def format_doc(
     pyproject_path = rootdir / "pyproject.toml"
     if pyproject_path.is_file():
         pyproject = toml.load(str(pyproject_path))
-        if "refers_path" in pyproject["tool"][LIBRARY_NAME].keys():
-            rootdir = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
-        if "allow_not_found_tags" in pyproject["tool"][LIBRARY_NAME].keys():
-            allow_not_found_tags = pyproject["tool"][LIBRARY_NAME][
-                "allow_not_found_tags"
-            ]
-        if (
-            "dirs2ignore" in pyproject["tool"][LIBRARY_NAME].keys()
-            and dirs2ignore is None
-        ):
-            dirs2ignore = [
-                Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2ignore"]
-            ]
-        if (
-            "dirs2search" in pyproject["tool"][LIBRARY_NAME].keys()
-            and dirs2search is None
-        ):
-            dirs2search = [
-                Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2search"]
-            ]
-        if "ref_files" in pyproject["tool"][LIBRARY_NAME].keys() and ref_files is None:
-            ref_files = [Path(f) for f in pyproject["tool"][LIBRARY_NAME]["ref_files"]]
-        if "tag_files" in pyproject["tool"][LIBRARY_NAME].keys() and tag_files is None:
-            tag_files = [Path(f) for f in pyproject["tool"][LIBRARY_NAME]["tag_files"]]
-        if (
-            "accepted_tag_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
-            and accepted_tag_extensions is None
-        ):
-            accepted_tag_extensions = pyproject["tool"][LIBRARY_NAME][
-                "accepted_mime_tag_types"
-            ]
-        if (
-            "accepted_ref_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
-            and accepted_ref_extensions is None
-        ):
-            accepted_ref_extensions = pyproject["tool"][LIBRARY_NAME][
-                "accepted_ref_extensions"
-            ]
+        if LIBRARY_NAME not in pyproject["tool"].keys():
+            if "refers_path" in pyproject["tool"][LIBRARY_NAME].keys():
+                rootdir = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
+            if "allow_not_found_tags" in pyproject["tool"][LIBRARY_NAME].keys():
+                allow_not_found_tags = pyproject["tool"][LIBRARY_NAME][
+                    "allow_not_found_tags"
+                ]
+            if (
+                "dirs2ignore" in pyproject["tool"][LIBRARY_NAME].keys()
+                and dirs2ignore is None
+            ):
+                dirs2ignore = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2ignore"]
+                ]
+            if (
+                "dirs2search" in pyproject["tool"][LIBRARY_NAME].keys()
+                and dirs2search is None
+            ):
+                dirs2search = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2search"]
+                ]
+            if (
+                "ref_files" in pyproject["tool"][LIBRARY_NAME].keys()
+                and ref_files is None
+            ):
+                ref_files = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["ref_files"]
+                ]
+            if (
+                "tag_files" in pyproject["tool"][LIBRARY_NAME].keys()
+                and tag_files is None
+            ):
+                tag_files = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["tag_files"]
+                ]
+            if (
+                "accepted_tag_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                and accepted_tag_extensions is None
+            ):
+                accepted_tag_extensions = pyproject["tool"][LIBRARY_NAME][
+                    "accepted_mime_tag_types"
+                ]
+            if (
+                "accepted_ref_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                and accepted_ref_extensions is None
+            ):
+                accepted_ref_extensions = pyproject["tool"][LIBRARY_NAME][
+                    "accepted_ref_extensions"
+                ]
 
     # inputs (overrides pyproject)
     if isinstance(accepted_tag_extensions, str):
