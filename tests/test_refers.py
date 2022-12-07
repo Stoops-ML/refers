@@ -572,3 +572,41 @@ def test_replace_tags_option_not_found(create_tmp_file):
             re.search(r"^Tag c and keyword  not found\.", str(exc_info.value))
             is not None
         )
+
+
+@pytest.mark.parametrize(
+    "create_tmp_file",
+    [
+        (
+            (
+                "test.py",
+                """# Test file
+a = 1  # @tag:a
+b = 1  # @tag:b
+c = 1
+d = 1  # @tag:d
+""",
+            ),
+            (
+                "test.md",
+                """# Test file
+On line [@ref:a:line1](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
+`b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
+`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline
+There is no tag for 'c': @ref:c""",
+            ),
+        )
+    ],
+    indirect=True,
+)
+def test_replace_tags_delete_file_on_error(create_tmp_file: Path):
+    tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
+    with pytest.raises(OptionNotFoundError) as exc_info:
+        replace_tags(
+            create_tmp_file.parent,
+            tags,
+            False,
+            [".md"],
+        )
+    f_refers = create_tmp_file.parent / ''.join((create_tmp_file.stem, '_refers', create_tmp_file.suffix))
+    assert not f_refers.is_file()
