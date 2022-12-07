@@ -1,34 +1,31 @@
 import pytest
-import tempfile
 from pathlib import Path
 import re
 
-TMP_DIR = Path(str(tempfile.tempdir))
-
 
 @pytest.fixture
-def create_tmp_file(request):
+def create_tmp_file(request, tmp_path):
     """
     Create temporary files.
     :param request: Tuple containing files to create
     :return: Path object of the first file given
     """
     for (fname, flines) in request.param:
-        tmp_file = TMP_DIR / fname
+        tmp_file = tmp_path / fname
         with open(tmp_file, "w") as f:
             f.write(flines)
-    yield TMP_DIR / request.param[0][0]  # return path to first file given
+    yield tmp_path / request.param[0][0]  # return path to first file given
     for (fname, flines) in request.param:
         fname = Path(fname)
-        tmp_file = TMP_DIR / fname
+        tmp_file = tmp_path / fname
         tmp_file.unlink()
-        refers_file = TMP_DIR / (fname.stem + "_refers" + fname.suffix)
+        refers_file = tmp_path / (fname.stem + "_refers" + fname.suffix)
         if refers_file.is_file():
             refers_file.unlink()
 
 
 @pytest.fixture
-def check_refers_test_files(request):
+def check_refers_test_files(request, tmp_path):
     """
     Check that *_refers files are only created for files that contain refs.
     All files in the refers_test_files folder must end (before the suffix): no_refs, with_refs, no_tags, or with_tags.
@@ -36,7 +33,7 @@ def check_refers_test_files(request):
     :return:
     """
 
-    tmp_folder = TMP_DIR / "test"
+    tmp_folder = tmp_path / "test"
     tmp_folder.mkdir(exist_ok=True)
     for (fname, flines) in request.param:
         tmp_file = tmp_folder / fname

@@ -1,0 +1,4 @@
+[tool.refers]
+refers_path = "src"
+accepted_tag_extensions = [".py"]
+accepted_ref_extensions = [".md"]

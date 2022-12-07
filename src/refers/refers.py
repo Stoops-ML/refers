@@ -4,6 +4,7 @@ from refers.errors import (
     MultipleTagsInOneLine,
     TagNotFoundError,
     PyprojectNotFound,
+    OptionNotFoundError,
 )
 from typing import Dict
 from typing import Optional
@@ -19,6 +20,7 @@ from refers.definitions import (
     DOC_OUT_ID,
     LIBRARY_NAME,
     COMMENT_SYMBOL,
+    OPTIONS,
 )
 import toml
 
@@ -95,61 +97,71 @@ def replace_tags(
     for f in files:
         ref_found = False
         out_fpath = f.parent / f"{f.stem}{DOC_OUT_ID}{f.suffix}"
-        with open(f, "r") as r_doc, open(out_fpath, "w") as w_doc:
-            for line in r_doc:
-                re_tags = re.finditer(DOC_REGEX_TAG, line)
-                for re_tag in re_tags:
-                    ref_found = True
-                    tag, option = re_tag.group(1), re_tag.group(2)
-                    if option is None and tag in tags.keys():
-                        rep = tags[tag][0].name + " L" + str(tags[tag][1])
-                    elif option == ":quote":
-                        rep = tags[tag][2]
-                    elif option == ":quotecode":
-                        if tags[tag][0].suffix.lower() not in COMMENT_SYMBOL.keys():
-                            warnings.warn(
-                                f"{tags[tag][0].suffix} not recognised. Using :quote option"
+        try:
+            with open(f, "r") as r_doc, open(out_fpath, "w") as w_doc:
+                for line in r_doc:
+                    re_tags = re.finditer(DOC_REGEX_TAG, line)
+                    for re_tag in re_tags:
+                        ref_found = True
+                        tag, option = re_tag.group(1), re_tag.group(2)
+
+                        # replace ref with tag:option
+                        if tag not in tags.keys() and not allow_not_found_tags:
+                            raise TagNotFoundError(
+                                f"Tag {tag} not found. Possible tags: {list(tags.keys())}"
                             )
+                        elif tag not in tags.keys() and allow_not_found_tags:
+                            rep = UNKNOWN_ID
+                        elif option is None:
+                            rep = tags[tag][0].name + " L" + str(tags[tag][1])
+                        elif option == ":quote":
                             rep = tags[tag][2]
-                        else:
-                            rep = re.sub(
-                                rf"{COMMENT_SYMBOL[tags[tag][0].suffix.lower()]}.*$",
-                                "",
-                                tags[tag][2],
-                            ).strip()
-                    elif option == ":fulllinkline":
-                        rep = tags[tag][0].as_posix() + "#L" + str(tags[tag][1])
-                    elif option == ":fulllink":
-                        rep = tags[tag][0].as_posix()
-                    elif option == ":linkline":
-                        rep = (
-                            tags[tag][0].relative_to(pdir).as_posix()
-                            + "#L"
-                            + str(tags[tag][1])
-                        )
-                    elif option == ":link":
-                        rep = tags[tag][0].relative_to(pdir).as_posix()
-                    elif option == ":line":
-                        rep = str(tags[tag][1])
-                    elif option == ":file":
-                        rep = tags[tag][0].name
-                    elif option is not None and re.search(r"^:p+$", option) is not None:
-                        rep = (
-                            tags[tag][0].parent.relative_to(
-                                tags[tag][0].parents[option.count("p")]
+                        elif option == ":quotecode":
+                            if tags[tag][0].suffix.lower() not in COMMENT_SYMBOL.keys():
+                                warnings.warn(
+                                    f"{tags[tag][0].suffix} not recognised. Using :quote option"
+                                )
+                                rep = tags[tag][2]
+                            else:
+                                rep = re.sub(
+                                    rf"{COMMENT_SYMBOL[tags[tag][0].suffix.lower()]}.*$",
+                                    "",
+                                    tags[tag][2],
+                                ).strip()
+                        elif option == ":fulllinkline":
+                            rep = tags[tag][0].as_posix() + "#L" + str(tags[tag][1])
+                        elif option == ":fulllink":
+                            rep = tags[tag][0].as_posix()
+                        elif option == ":linkline":
+                            rep = (
+                                tags[tag][0].relative_to(pdir).as_posix()
+                                + "#L"
+                                + str(tags[tag][1])
                             )
-                            / tags[tag][0].name
-                        ).as_posix()
-                    elif allow_not_found_tags:
-                        rep = UNKNOWN_ID
-                    else:
-                        raise TagNotFoundError(
-                            f"Tag {tag} and keyword {option} not found. Possible Tags and keywords: {tags}"
-                        )
-                    line = re.sub(rf"{re_tag.group(0)}(?![a-zA-Z:])", rep, line)
-                w_doc.write(line)
-        if not ref_found:
+                        elif option == ":link":
+                            rep = tags[tag][0].relative_to(pdir).as_posix()
+                        elif option == ":line":
+                            rep = str(tags[tag][1])
+                        elif option == ":file":
+                            rep = tags[tag][0].name
+                        elif re.search(r"^:p+$", option) is not None:
+                            rep = (
+                                tags[tag][0].parent.relative_to(
+                                    tags[tag][0].parents[option.count("p")]
+                                )
+                                / tags[tag][0].name
+                            ).as_posix()
+                        else:
+                            raise OptionNotFoundError(
+                                f"Option {option} of tag {tag} not found. Possible options: {OPTIONS}"
+                            )
+                        line = re.sub(rf"{re_tag.group(0)}(?![a-zA-Z:])", rep, line)
+                    w_doc.write(line)
+            if not ref_found:
+                out_fpath.unlink()
+        except Exception as e:
             out_fpath.unlink()
+            raise e
 
 
 def format_doc(
@@ -198,44 +210,55 @@ def format_doc(
     pyproject_path = rootdir / "pyproject.toml"
     if pyproject_path.is_file():
         pyproject = toml.load(str(pyproject_path))
-        if "refers_path" in pyproject["tool"][LIBRARY_NAME].keys():
-            rootdir = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
-        if "allow_not_found_tags" in pyproject["tool"][LIBRARY_NAME].keys():
-            allow_not_found_tags = pyproject["tool"][LIBRARY_NAME][
-                "allow_not_found_tags"
-            ]
-        if (
-            "dirs2ignore" in pyproject["tool"][LIBRARY_NAME].keys()
-            and dirs2ignore is None
-        ):
-            dirs2ignore = [
-                Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2ignore"]
-            ]
-        if (
-            "dirs2search" in pyproject["tool"][LIBRARY_NAME].keys()
-            and dirs2search is None
-        ):
-            dirs2search = [
-                Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2search"]
-            ]
-        if "ref_files" in pyproject["tool"][LIBRARY_NAME].keys() and ref_files is None:
-            ref_files = [Path(f) for f in pyproject["tool"][LIBRARY_NAME]["ref_files"]]
-        if "tag_files" in pyproject["tool"][LIBRARY_NAME].keys() and tag_files is None:
-            tag_files = [Path(f) for f in pyproject["tool"][LIBRARY_NAME]["tag_files"]]
-        if (
-            "accepted_tag_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
-            and accepted_tag_extensions is None
-        ):
-            accepted_tag_extensions = pyproject["tool"][LIBRARY_NAME][
-                "accepted_mime_tag_types"
-            ]
-        if (
-            "accepted_ref_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
-            and accepted_ref_extensions is None
-        ):
-            accepted_ref_extensions = pyproject["tool"][LIBRARY_NAME][
-                "accepted_ref_extensions"
-            ]
+        if LIBRARY_NAME not in pyproject["tool"].keys():
+            if "refers_path" in pyproject["tool"][LIBRARY_NAME].keys():
+                rootdir = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
+            if "allow_not_found_tags" in pyproject["tool"][LIBRARY_NAME].keys():
+                allow_not_found_tags = pyproject["tool"][LIBRARY_NAME][
+                    "allow_not_found_tags"
+                ]
+            if (
+                "dirs2ignore" in pyproject["tool"][LIBRARY_NAME].keys()
+                and dirs2ignore is None
+            ):
+                dirs2ignore = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2ignore"]
+                ]
+            if (
+                "dirs2search" in pyproject["tool"][LIBRARY_NAME].keys()
+                and dirs2search is None
+            ):
+                dirs2search = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2search"]
+                ]
+            if (
+                "ref_files" in pyproject["tool"][LIBRARY_NAME].keys()
+                and ref_files is None
+            ):
+                ref_files = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["ref_files"]
+                ]
+            if (
+                "tag_files" in pyproject["tool"][LIBRARY_NAME].keys()
+                and tag_files is None
+            ):
+                tag_files = [
+                    Path(f) for f in pyproject["tool"][LIBRARY_NAME]["tag_files"]
+                ]
+            if (
+                "accepted_tag_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                and accepted_tag_extensions is None
+            ):
+                accepted_tag_extensions = pyproject["tool"][LIBRARY_NAME][
+                    "accepted_mime_tag_types"
+                ]
+            if (
+                "accepted_ref_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                and accepted_ref_extensions is None
+            ):
+                accepted_ref_extensions = pyproject["tool"][LIBRARY_NAME][
+                    "accepted_ref_extensions"
+                ]
 
     # inputs (overrides pyproject)
     if isinstance(accepted_tag_extensions, str):
