@@ -1,6 +1,6 @@
 # Example 1
 This document demonstrates the `refers` library. 
-Run the `refers` library in command prompt to achieve the same results here.
+Run the `refers` library in command prompt to output the file [readme_refers.md](readme_refers.md).
 
 ## Demostration
 The file [@ref:dist_eq:file](@ref:dist_eq:link) is a script that simulates linear motion.
