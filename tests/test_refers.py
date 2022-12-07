@@ -8,7 +8,6 @@ from refers.errors import (
     TagNotFoundError,
     OptionNotFoundError,
 )
-from .conftest import TMP_DIR
 from refers.definitions import COMMENT_SYMBOL
 
 
@@ -449,7 +448,7 @@ def test_replace_tags(create_tmp_file: Path):
         [".md"],
     )
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
-    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {(TMP_DIR).as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {TMP_DIR.name}/test{create_tmp_file.suffix} and a relative path three parents up of {TMP_DIR.relative_to(TMP_DIR.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {TMP_DIR.as_posix()}/test{create_tmp_file.suffix}#L5"
+    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {create_tmp_file.parent.name}/test{create_tmp_file.suffix} and a relative path three parents up of {create_tmp_file.parent.relative_to(create_tmp_file.parent.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5"
     refers_file = create_tmp_file.parent / "test_refers.md"
     with open(refers_file, "r") as f:
         assert ans == f.read()
@@ -489,7 +488,7 @@ def test_replace_tags_allow_unknown_tags(create_tmp_file: Path):
         [".md"],
     )
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
-    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {(TMP_DIR).as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {TMP_DIR.name}/test{create_tmp_file.suffix} and a relative path three parents up of {TMP_DIR.relative_to(TMP_DIR.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {TMP_DIR.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is no tag for 'c': TAG-NOT-FOUND"
+    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {create_tmp_file.parent.name}/test{create_tmp_file.suffix} and a relative path three parents up of {create_tmp_file.parent.relative_to(create_tmp_file.parent.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is no tag for 'c': TAG-NOT-FOUND"
     refers_file = create_tmp_file.parent / "test_refers.md"
     with open(refers_file, "r") as f:
         assert ans == f.read()
