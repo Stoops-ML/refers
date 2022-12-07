@@ -601,12 +601,14 @@ There is no tag for 'c': @ref:c""",
 )
 def test_replace_tags_delete_file_on_error(create_tmp_file: Path):
     tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
-    with pytest.raises(OptionNotFoundError) as exc_info:
+    with pytest.raises(OptionNotFoundError):
         replace_tags(
             create_tmp_file.parent,
             tags,
             False,
             [".md"],
         )
-    f_refers = create_tmp_file.parent / ''.join((create_tmp_file.stem, '_refers', create_tmp_file.suffix))
+    f_refers = create_tmp_file.parent / "".join(
+        (create_tmp_file.stem, "_refers", create_tmp_file.suffix)
+    )
     assert not f_refers.is_file()
