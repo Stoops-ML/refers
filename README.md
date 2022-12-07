@@ -1,6 +1,6 @@
-![Tests](https://github.com/Stoops-ML/refers/actions/workflows/tests.yml/badge.svg)
 # refers
 *<p style="text-align: center;">reference code simply</p>*
+![Tests](https://github.com/Stoops-ML/refers/actions/workflows/test.yml/badge.svg)
 The refers library allows referencing plain text files from plain text files. To reference code from a file:
 1. Add a tag to the line that you want to reference: `@tag:TAG_NAME`
 2. Add a reference to the tag followed by an option: `@ref:TAG_NAME:OPTION`
