@@ -35,6 +35,103 @@ from refers.definitions import (
 import toml
 
 
+def numpy2latex(
+    numpy_str: str, use_times_sign: bool = False, use_divide_sign: bool = False
+) -> str:
+    """
+
+    Methodology:
+    - catch characters in brackets using [^)]
+    - use non-greedy catch .+?
+    - place spaces around replaced strings so that word-non-word boundaries \b can be used
+    - only kwargs are removed from inputs to functions
+
+    :param use_divide_sign:
+    :param numpy_str:
+    :param use_times_sign:
+    :return:
+    """
+    # formatting
+    numpy_str = re.sub("[ _]", "", numpy_str)
+    numpy_str = re.sub(r"numpy\.", "np.", numpy_str)
+    numpy_str = re.sub(r"\[[^]]*?\]", "", numpy_str)
+    numpy_str = re.sub(
+        r"\b\(([^)]+?)(?:,\w+=[^)]+?)+\)", r"(\1)", numpy_str
+    )  # remove kwargs
+
+    # operators
+    numpy_str = re.sub(r"!=", r" \\neq ", numpy_str)
+    numpy_str = re.sub(r"<=", r" \\leq ", numpy_str)
+    numpy_str = re.sub(r">=", r" \\geq ", numpy_str)
+    numpy_str = re.sub(r"\*\*", " ^ ", numpy_str)
+    numpy_str = (
+        re.sub(r"\*", r" \times ", numpy_str)
+        if use_times_sign
+        else re.sub(r"\*", "", numpy_str)
+    )
+    if not use_divide_sign:
+        numpy_str = re.sub(
+            r"(\bnp\.\w+)?\(([^)]+?)\)/(\bnp\.\w+)?\(([^)]+?)\)",
+            r" \\frac{\1(\2)}{\3(\4)} ",
+            numpy_str,
+        )
+        numpy_str = re.sub(
+            r"(\w+)/(\bnp\.\w+)?\(([^)]+?)\)", r" \\frac{\1}{\2(\3)} ", numpy_str
+        )
+        numpy_str = re.sub(
+            r"(\bnp\.\w+)?\(([^)]+?)\)/(\w+)", r" \\frac{\1(\2)}{\3} ", numpy_str
+        )
+        numpy_str = re.sub(r"(\w+)/(\w+)", r" \\frac{\1}{\2} ", numpy_str)
+    else:
+        numpy_str = re.sub(r"/", r" \\div ", numpy_str)
+
+    # functions
+    numpy_str = re.sub(
+        r"\bnp\.dot\(([^)]+?),([^)]+?)(,?[^)]*?)\)", r" \1\\cdot \2 ", numpy_str
+    )
+    numpy_str = re.sub(
+        r"\bnp\.cross\(([^)]+?),([^)]+?)(,?[^)]*?)\)", r" \1\\times \2 ", numpy_str
+    )
+    numpy_str = re.sub(
+        r"\bnp\.(\w+)\(([^)]+?)\)", r" \\\1{\2} ", numpy_str
+    )  # general function
+
+    # letters
+    numpy_str = re.sub(r"\b([a|A]lpha)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([o|O]mega)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([b|B]eta)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([g|G]amma)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([l|L]amba)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([m|M]u)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([n|N]u)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([x|X]i)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([o|O]micron)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([d|D]elta)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([t|T]au)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([u|U]psilon)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([d|D]igamma)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([z|Z]eta)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b([i|I]ota)\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([r|R]ho))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([s|S]igma))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([p|P]i))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([p|P]hi))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([p|P]si))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([c|C]hi))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([e|E]psilon))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([t|T]heta))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\b((?:var)?([k|K]appa))\b", r" \\\1 ", numpy_str)
+    numpy_str = re.sub(r"\binfinity\b", r" \\infty ", numpy_str)
+
+    # clean up
+    numpy_str = re.sub(
+        r"{\(([^)]+?)\)}", r"{\1}", numpy_str
+    )  # remove unnecessary brackets
+    numpy_str = re.sub(r" ", "", numpy_str)
+
+    return numpy_str
+
+
 def get_files(
     pdir: Path,
     accepted_extensions: Optional[List[str]] = None,
