@@ -19,9 +19,7 @@ from refers.definitions import COMMENT_SYMBOL
                 "test.md",
                 """# Test file
 
-Function `f` has a comment: @tag:f_a:link and @tag:f_a:pp and @tag:f_a
-
-Function `f` has a comment: @tag:f_a:line in the [file](@tag:f_a:link) and @tag:f_a:pp and @tag:f_a
+Function `f` has a comment: @tag:f_a:link and @tag:f_b:pp and @tag:f_c
             """,
             ),
         )
@@ -66,6 +64,9 @@ a = 1  # @tag:a
 b = 1  # @tag:b
 c = 1
 d = 1  # @tag:d
+e = (
+1  # @tag:e
+)
 """,
             ),
         )
@@ -74,15 +75,31 @@ d = 1  # @tag:d
 )
 def test_tags_no_option(create_tmp_file):
     tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
-    assert tags["a"][0].name == "test.py"
-    assert tags["a"][1] == 2
-    assert tags["a"][2] == "a = 1  # @tag:a"
-    assert tags["b"][0].name == "test.py"
-    assert tags["b"][1] == 3
-    assert tags["b"][2] == "b = 1  # @tag:b"
-    assert tags["d"][0].name == "test.py"
-    assert tags["d"][1] == 5
-    assert tags["d"][2] == "d = 1  # @tag:d"
+
+    tag = tags.get_tag("a")
+    assert tag.name == "a"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 2
+    assert tag.line == tag.full_line == "a = 1  # @tag:a"
+
+    tag = tags.get_tag("b")
+    assert tag.name == "b"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 3
+    assert tag.line == tag.full_line == "b = 1  # @tag:b"
+
+    tag = tags.get_tag("d")
+    assert tag.name == "d"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 5
+    assert tag.line == tag.full_line == "d = 1  # @tag:d"
+
+    tag = tags.get_tag("e")
+    assert tag.name == "e"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 7
+    assert tag.line == "1  # @tag:e"
+    assert tag.full_line == "e = 1  # @tag:e"  # black'd
 
 
 @pytest.mark.parametrize(
@@ -92,8 +109,8 @@ def test_tags_no_option(create_tmp_file):
             (
                 "file_with_refs.md",
                 """# Test file
-Function `f` has a comment: @ref:f_a:link and @ref:f_a:pp and @ref:f_a
-Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and @ref:f_a:pp and @ref:f_a and @ref:f_a:quotecode
+Function `f` has a comment: @ref:f_a:link and  and @ref:f_a
+Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and  and @ref:f_a and @ref:f_a:quotecode
 """,
             ),
             (
@@ -131,8 +148,8 @@ def test_format_doc_full_path_str(check_refers_test_files: Path):
             (
                 "file_with_refs.md",
                 """# Test file
-Function `f` has a comment: @ref:f_a:link and @ref:f_a:pp and @ref:f_a
-Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and @ref:f_a:pp and @ref:f_a and @ref:f_a:quotecode
+Function `f` has a comment: @ref:f_a:link and  and @ref:f_a
+Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and  and @ref:f_a and @ref:f_a:quotecode
 """,
             ),
             (
@@ -181,7 +198,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -199,7 +216,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -217,7 +234,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -235,7 +252,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -253,7 +270,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -271,7 +288,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -289,7 +306,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -307,7 +324,7 @@ d = 1  // @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -325,7 +342,7 @@ d = 1  <! -- @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -343,7 +360,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -361,7 +378,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -379,7 +396,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -397,7 +414,7 @@ d = 1  /// @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -415,7 +432,7 @@ d = 1  % @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
         (
@@ -433,7 +450,7 @@ d = 1  % @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         ),
     ],
@@ -448,7 +465,7 @@ def test_replace_tags(create_tmp_file: Path):
         [".md"],
     )
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
-    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {create_tmp_file.parent.name}/test{create_tmp_file.suffix} and a relative path three parents up of {create_tmp_file.parent.relative_to(create_tmp_file.parent.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5"
+    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5"
     refers_file = create_tmp_file.parent / "test_refers.md"
     with open(refers_file, "r") as f:
         assert ans == f.read()
@@ -472,7 +489,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
 There is no tag for 'c': @ref:c""",
             ),
         )
@@ -488,7 +505,7 @@ def test_replace_tags_allow_unknown_tags(create_tmp_file: Path):
         [".md"],
     )
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
-    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of {create_tmp_file.parent.name}/test{create_tmp_file.suffix} and a relative path three parents up of {create_tmp_file.parent.relative_to(create_tmp_file.parent.parents[2]).as_posix()}/test{create_tmp_file.suffix}. The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is no tag for 'c': TAG-NOT-FOUND"
+    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is no tag for 'c': TAG-NOT-FOUND"
     refers_file = create_tmp_file.parent / "test_refers.md"
     with open(refers_file, "r") as f:
         assert ans == f.read()
@@ -512,7 +529,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
 There is no tag for 'c': @ref:c""",
             ),
         )
@@ -552,7 +569,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line1](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
 There is no tag for 'c': @ref:c""",
             ),
         )
@@ -592,7 +609,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line1](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of @ref:d:p and a relative path three parents up of @ref:d:ppp. The full link with line is @ref:d:fulllinkline
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
 There is no tag for 'c': @ref:c""",
             ),
         )

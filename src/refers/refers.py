@@ -1,26 +1,36 @@
+from black.linegen import LineGenerator
+from typing import (
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
+
+from blib2to3.pytree import Node, Leaf  # type: ignore
+
+LN = Union[Leaf, Node]
+T = TypeVar("T")
+from refers.tags import Tag, Tags
+
+
+from black.comments import normalize_fmt_off
+import black
+from black.parsing import lib2to3_parse
+
 import warnings
 from refers.errors import (
-    TagAlreadyExistsError,
     MultipleTagsInOneLine,
     TagNotFoundError,
     PyprojectNotFound,
     OptionNotFoundError,
 )
-from typing import Dict
-from typing import Optional
-from typing import List
-from typing import Tuple
-from typing import Union
 import re
 from pathlib import Path
 from refers.definitions import (
     CODE_RE_TAG,
-    UNKNOWN_ID,
     DOC_REGEX_TAG,
     DOC_OUT_ID,
     LIBRARY_NAME,
-    COMMENT_SYMBOL,
-    OPTIONS,
 )
 import toml
 
@@ -52,37 +62,67 @@ def get_tags(
     dirs2search: Optional[List[Path]] = None,
     dirs2ignore: Optional[List[Path]] = None,
     tag_files: Optional[List[Path]] = None,
-) -> Dict[str, Tuple[Path, int, str]]:
+) -> Tags:
     files = (
         get_files(pdir, accepted_tag_extensions, dirs2ignore, dirs2search)
         if tag_files is None
         else iter(tag_files)
     )
-    dict_tag: Dict[str, Tuple[Path, int, str]] = {}
+    mode = black.Mode()
+    tags = Tags()
     for f in files:
+        tag_found = False
         with open(f, "r") as fread:
             for i, line in enumerate(fread):
-                tag = re.findall(CODE_RE_TAG, line)
-                if len(tag) == 0:
+                line = line.strip()
+                line_num = i + 1
+                tag_names = re.findall(CODE_RE_TAG, line)
+                if len(tag_names) == 0:
                     continue
-                elif len(tag) > 1:  # TODO allow this behaviour?
+                elif len(tag_names) > 1:
                     raise MultipleTagsInOneLine(
-                        f"File {str(f)} has multiple tags on line {i + 1}"
+                        f"File {str(f)} has multiple tags on line {line_num}"
                     )
-                if tag[0] in dict_tag.keys():
-                    raise TagAlreadyExistsError(
-                        f"""Tag {tag[0]} already exists.
-                    Earlier tag {dict_tag[tag[0]]}.
-                    New tag found in {str(f)} on line {i + 1}."""
-                    )
-                dict_tag[tag[0]] = (f, i + 1, line.strip())
+                tag_found = True
+                tag_name = tag_names[0]
+                tag = Tag(
+                    tag_name, line_num, line, f, 0, 0, line
+                )  # TODO get start, end line numbers
+                tags.add_tag(tag)
 
-    return dict_tag
+            if f.suffix == ".py" and tag_found:
+                try:
+                    fread.seek(0)
+                    src_contents = fread.read()
+                    src_node = lib2to3_parse(
+                        src_contents.lstrip(), mode.target_versions
+                    )
+                    normalize_fmt_off(src_node, preview=mode.preview)
+                    lines = LineGenerator(mode=mode)
+                    for current_line in lines.visit(
+                        src_node
+                    ):  # TODO monkeypatch lines.visit to return start and end line numbers. Also remove above for loop and rely only on this one
+                        line = str(current_line)  # black'd
+                        tag_names = re.findall(CODE_RE_TAG, line)
+                        if len(tag_names) == 0:
+                            continue
+                        elif len(tag_names) > 1:
+                            raise MultipleTagsInOneLine(
+                                f"File {str(f)} has multiple tags on line {line_num}"
+                            )
+                        tag_name = tag_names[0]
+                        tag = tags.get_tag(tag_name)
+                        tag.full_line = line.strip()
+                except black.parsing.InvalidInput:
+                    warnings.warn(
+                        f"Cannot parse file {str(f)} with black. Full line is line."
+                    )
+    return tags
 
 
 def replace_tags(
     pdir: Path,
-    tags: Dict[str, Tuple[Path, int, str]],
+    tags: Tags,
     allow_not_found_tags: bool,
     accepted_ref_extensions: Optional[List[str]] = None,
     dirs2search: Optional[List[Path]] = None,
@@ -103,59 +143,36 @@ def replace_tags(
                     re_tags = re.finditer(DOC_REGEX_TAG, line)
                     for re_tag in re_tags:
                         ref_found = True
-                        tag, option = re_tag.group(1), re_tag.group(2)
+                        tag_name, option = re_tag.group(1), re_tag.group(2)
+                        if option is None:
+                            option = ":default"
+
+                        try:
+                            tag = tags.get_tag(tag_name)
+                        except TagNotFoundError as e:
+                            if allow_not_found_tags:
+                                option = ":unknown_tag"
+                            else:
+                                raise e
 
                         # replace ref with tag:option
-                        if tag not in tags.keys() and not allow_not_found_tags:
-                            raise TagNotFoundError(
-                                f"Tag {tag} not found. Possible tags: {list(tags.keys())}"
-                            )
-                        elif tag not in tags.keys() and allow_not_found_tags:
-                            rep = UNKNOWN_ID
-                        elif option is None:
-                            rep = tags[tag][0].name + " L" + str(tags[tag][1])
-                        elif option == ":quote":
-                            rep = tags[tag][2]
-                        elif option == ":quotecode":
-                            if tags[tag][0].suffix.lower() not in COMMENT_SYMBOL.keys():
-                                warnings.warn(
-                                    f"{tags[tag][0].suffix} not recognised. Using :quote option"
-                                )
-                                rep = tags[tag][2]
-                            else:
-                                rep = re.sub(
-                                    rf"{COMMENT_SYMBOL[tags[tag][0].suffix.lower()]}.*$",
-                                    "",
-                                    tags[tag][2],
-                                ).strip()
-                        elif option == ":fulllinkline":
-                            rep = tags[tag][0].as_posix() + "#L" + str(tags[tag][1])
-                        elif option == ":fulllink":
-                            rep = tags[tag][0].as_posix()
-                        elif option == ":linkline":
-                            rep = (
-                                tags[tag][0].relative_to(pdir).as_posix()
-                                + "#L"
-                                + str(tags[tag][1])
-                            )
-                        elif option == ":link":
-                            rep = tags[tag][0].relative_to(pdir).as_posix()
-                        elif option == ":line":
-                            rep = str(tags[tag][1])
-                        elif option == ":file":
-                            rep = tags[tag][0].name
-                        elif re.search(r"^:p+$", option) is not None:
-                            rep = (
-                                tags[tag][0].parent.relative_to(
-                                    tags[tag][0].parents[option.count("p")]
-                                )
-                                / tags[tag][0].name
-                            ).as_posix()
-                        else:
+                        visit = getattr(tag, f"visit_{option[1:]}", None)
+                        if visit is None:
+                            visits = [
+                                func.replace("visit_", "")
+                                for func in dir(Tag)
+                                if (callable(getattr(Tag, func)) and "visit_" in func)
+                            ]
                             raise OptionNotFoundError(
-                                f"Option {option} of tag {tag} not found. Possible options: {OPTIONS}"
+                                f"Option {option} of tag {tag_name} not found. Possible options: {visits}"
                             )
-                        line = re.sub(rf"{re_tag.group(0)}(?![a-zA-Z:])", rep, line)
+                        else:
+                            kwargs = {"parent_dir": pdir}
+                            line = re.sub(
+                                rf"{re_tag.group(0)}(?![a-zA-Z:])",
+                                visit(**kwargs),
+                                line,
+                            )
                     w_doc.write(line)
             if not ref_found:
                 out_fpath.unlink()

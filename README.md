@@ -1,6 +1,7 @@
 # refers
 *<p style="text-align: center;">reference code simply</p>*
 ![Tests](https://github.com/Stoops-ML/refers/actions/workflows/test.yml/badge.svg)
+
 The refers library allows referencing plain text files from plain text files. To reference code from a file:
 1. Add a tag to the line that you want to reference: `@tag:TAG_NAME`
 2. Add a reference to the tag followed by an option: `@ref:TAG_NAME:OPTION`
@@ -21,8 +22,6 @@ Changes of line placement, file name, relative path etc. are reflected in the up
 | :linkline     | relative link to line in file                     |
 | :fulllink     | full path link to file                            |
 | :fulllinkline | full path link to line in file                    |
-| :p            | print relative path from one parent up            |
-| :pp           | print relative path from number of `p` parents up |
 | :quote        | quote line                                        |
 | :quotecode    | quote line of code without comment                |
 
