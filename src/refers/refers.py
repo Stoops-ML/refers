@@ -301,7 +301,7 @@ def format_doc(
     :return:
     """
 
-    # get root dir
+    # get root dir TODO use find_root_project() from black: https://github.com/psf/black/blob/d97b7898b34b67eb3c6839998920e17ac8c77908/src/black/files.py#L43
     if rootdir is None:  # TODO follow pytest rootdir finding algorithm
         p = Path.cwd()
         while rootdir is None:
