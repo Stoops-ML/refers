@@ -132,6 +132,15 @@ def numpy2latex(
     return numpy_str
 
 
+def get_tag_name(line: str) -> str:
+    tag_names = re.findall(CODE_RE_TAG, line)
+    if len(tag_names) == 0:
+        raise TagNotFoundError
+    elif len(tag_names) > 1:
+        raise MultipleTagsInOneLine
+    return tag_names[0]
+
+
 def get_files(
     pdir: Path,
     accepted_extensions: Optional[List[str]] = None,
@@ -173,15 +182,8 @@ def get_tags(
             for i, line in enumerate(fread):
                 line = line.strip()
                 line_num = i + 1
-                tag_names = re.findall(CODE_RE_TAG, line)
-                if len(tag_names) == 0:
-                    continue
-                elif len(tag_names) > 1:
-                    raise MultipleTagsInOneLine(
-                        f"File {str(f)} has multiple tags on line {line_num}"
-                    )
+                tag_name = get_tag_name(line)
                 tag_found = True
-                tag_name = tag_names[0]
                 tag = Tag(
                     tag_name, line_num, line, f, 0, 0, line
                 )  # TODO get start, end line numbers
@@ -200,14 +202,7 @@ def get_tags(
                         src_node
                     ):  # TODO monkeypatch lines.visit to return start and end line numbers. Also remove above for loop and rely only on this one
                         line = str(current_line)  # black'd
-                        tag_names = re.findall(CODE_RE_TAG, line)
-                        if len(tag_names) == 0:
-                            continue
-                        elif len(tag_names) > 1:
-                            raise MultipleTagsInOneLine(
-                                f"File {str(f)} has multiple tags on line {line_num}"
-                            )
-                        tag_name = tag_names[0]
+                        tag_name = get_tag_name(line)
                         tag = tags.get_tag(tag_name)
                         tag.full_line = line.strip()
                 except black.parsing.InvalidInput:
