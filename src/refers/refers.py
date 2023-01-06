@@ -1,4 +1,13 @@
-from black.linegen import LineGenerator
+from black import nodes
+from typing import (
+    TypeVar,
+)
+
+# types
+T = TypeVar("T")
+Index = int
+LeafID = int
+
 from typing import (
     List,
     Optional,
@@ -13,11 +22,9 @@ T = TypeVar("T")
 from refers.tags import Tag, Tags
 
 
-from black.comments import normalize_fmt_off
 import black
 from black.parsing import lib2to3_parse
 
-import warnings
 from refers.errors import (
     MultipleTagsInOneLine,
     TagNotFoundError,
@@ -33,112 +40,7 @@ from refers.definitions import (
     LIBRARY_NAME,
 )
 import toml
-
-
-def numpy2latex(
-    numpy_str: str, use_times_sign: bool = False, use_divide_sign: bool = False
-) -> str:
-    """
-
-    Methodology:
-    - catch characters in brackets using [^)]
-    - use non-greedy catch .+?
-    - place spaces around replaced strings so that word-non-word boundaries \b can be used
-    - only kwargs are removed from inputs to functions
-
-    :param use_divide_sign:
-    :param numpy_str:
-    :param use_times_sign:
-    :return:
-    """
-    # formatting
-    numpy_str = re.sub("[ _]", "", numpy_str)
-    numpy_str = re.sub(r"numpy\.", "np.", numpy_str)
-    numpy_str = re.sub(r"\[[^]]*?\]", "", numpy_str)
-    numpy_str = re.sub(
-        r"\b\(([^)]+?)(?:,\w+=[^)]+?)+\)", r"(\1)", numpy_str
-    )  # remove kwargs
-
-    # operators
-    numpy_str = re.sub(r"!=", r" \\neq ", numpy_str)
-    numpy_str = re.sub(r"<=", r" \\leq ", numpy_str)
-    numpy_str = re.sub(r">=", r" \\geq ", numpy_str)
-    numpy_str = re.sub(r"\*\*", " ^ ", numpy_str)
-    numpy_str = (
-        re.sub(r"\*", r" \times ", numpy_str)
-        if use_times_sign
-        else re.sub(r"\*", "", numpy_str)
-    )
-    if not use_divide_sign:
-        numpy_str = re.sub(
-            r"(\bnp\.\w+)?\(([^)]+?)\)/(\bnp\.\w+)?\(([^)]+?)\)",
-            r" \\frac{\1(\2)}{\3(\4)} ",
-            numpy_str,
-        )
-        numpy_str = re.sub(
-            r"(\w+)/(\bnp\.\w+)?\(([^)]+?)\)", r" \\frac{\1}{\2(\3)} ", numpy_str
-        )
-        numpy_str = re.sub(
-            r"(\bnp\.\w+)?\(([^)]+?)\)/(\w+)", r" \\frac{\1(\2)}{\3} ", numpy_str
-        )
-        numpy_str = re.sub(r"(\w+)/(\w+)", r" \\frac{\1}{\2} ", numpy_str)
-    else:
-        numpy_str = re.sub(r"/", r" \\div ", numpy_str)
-
-    # functions
-    numpy_str = re.sub(
-        r"\bnp\.dot\(([^)]+?),([^)]+?)(,?[^)]*?)\)", r" \1\\cdot \2 ", numpy_str
-    )
-    numpy_str = re.sub(
-        r"\bnp\.cross\(([^)]+?),([^)]+?)(,?[^)]*?)\)", r" \1\\times \2 ", numpy_str
-    )
-    numpy_str = re.sub(
-        r"\bnp\.(\w+)\(([^)]+?)\)", r" \\\1{\2} ", numpy_str
-    )  # general function
-
-    # letters
-    numpy_str = re.sub(r"\b([a|A]lpha)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([o|O]mega)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([b|B]eta)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([g|G]amma)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([l|L]amba)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([m|M]u)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([n|N]u)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([x|X]i)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([o|O]micron)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([d|D]elta)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([t|T]au)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([u|U]psilon)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([d|D]igamma)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([z|Z]eta)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b([i|I]ota)\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([r|R]ho))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([s|S]igma))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([p|P]i))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([p|P]hi))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([p|P]si))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([c|C]hi))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([e|E]psilon))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([t|T]heta))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\b((?:var)?([k|K]appa))\b", r" \\\1 ", numpy_str)
-    numpy_str = re.sub(r"\binfinity\b", r" \\infty ", numpy_str)
-
-    # clean up
-    numpy_str = re.sub(
-        r"{\(([^)]+?)\)}", r"{\1}", numpy_str
-    )  # remove unnecessary brackets
-    numpy_str = re.sub(r" ", "", numpy_str)
-
-    return numpy_str
-
-
-def get_tag_name(line: str) -> str:
-    tag_names = re.findall(CODE_RE_TAG, line)
-    if len(tag_names) == 0:
-        raise TagNotFoundError
-    elif len(tag_names) > 1:
-        raise MultipleTagsInOneLine
-    return tag_names[0]
+from refers.compromise_black import LineGenerator
 
 
 def get_files(
@@ -177,38 +79,65 @@ def get_tags(
     mode = black.Mode()
     tags = Tags()
     for f in files:
-        tag_found = False
         with open(f, "r") as fread:
-            for i, line in enumerate(fread):
-                line = line.strip()
-                line_num = i + 1
-                tag_name = get_tag_name(line)
-                tag_found = True
-                tag = Tag(
-                    tag_name, line_num, line, f, 0, 0, line
-                )  # TODO get start, end line numbers
-                tags.add_tag(tag)
+            if not f.suffix == ".py":
+                for i, full_line in enumerate(fread):
+                    full_line = full_line.strip()
+                    line_num = i + 1
+                    tag_names = re.findall(CODE_RE_TAG, full_line)
+                    if len(tag_names) == 0:
+                        continue
+                    elif len(tag_names) > 1:
+                        raise MultipleTagsInOneLine
+                    tag_name = tag_names[0]
+                    tag = Tag(
+                        tag_name,
+                        line_num,
+                        full_line,
+                        f,
+                        line_num,
+                        line_num,
+                        full_line,
+                        Node(256, []),
+                    )
+                    tags.add_tag(tag)
+            else:
+                src_lines = fread.readlines()
+                fread.seek(0)
+                src_contents = fread.read()
+                src_node = lib2to3_parse(src_contents.lstrip(), mode.target_versions)
+                lines = LineGenerator(mode=mode)
+                for current_line in lines.visit(src_node):
+                    # standalone comments hold no information in Leaf and is therefore not supported
+                    if current_line.leaves[0].type == nodes.STANDALONE_COMMENT:
+                        continue
 
-            if f.suffix == ".py" and tag_found:
-                try:
-                    fread.seek(0)
-                    src_contents = fread.read()
-                    src_node = lib2to3_parse(
-                        src_contents.lstrip(), mode.target_versions
-                    )
-                    normalize_fmt_off(src_node, preview=mode.preview)
-                    lines = LineGenerator(mode=mode)
-                    for current_line in lines.visit(
-                        src_node
-                    ):  # TODO monkeypatch lines.visit to return start and end line numbers. Also remove above for loop and rely only on this one
-                        line = str(current_line)  # black'd
-                        tag_name = get_tag_name(line)
-                        tag = tags.get_tag(tag_name)
-                        tag.full_line = line.strip()
-                except black.parsing.InvalidInput:
-                    warnings.warn(
-                        f"Cannot parse file {str(f)} with black. Full line is line."
-                    )
+                    full_line = re.sub(r"(.*)\n$", r"\1", str(current_line))
+                    line_num_start = current_line.leaves[0].get_lineno()
+                    line_num_end = current_line.leaves[-1].get_lineno()
+
+                    for line_num in range(line_num_start, line_num_end + 1):
+                        src_line = re.sub(
+                            r"(.*)\n$", r"\1", src_lines[line_num - 1]
+                        )  # strip newline
+                        tag_names = re.findall(CODE_RE_TAG, src_line)
+                        if len(tag_names) == 0:
+                            continue
+                        elif len(tag_names) > 1:
+                            raise MultipleTagsInOneLine
+                        tag = Tag(
+                            tag_names[0],
+                            line_num,
+                            src_line,
+                            f,
+                            line_num_start,
+                            line_num_end,
+                            full_line,
+                            current_line.parent_nodes[
+                                0
+                            ],  # TODO implement get node type
+                        )
+                        tags.add_tag(tag)
     return tags
 
 

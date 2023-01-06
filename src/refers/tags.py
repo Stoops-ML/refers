@@ -2,6 +2,7 @@ from typing import (
     Optional,
 )
 
+from blib2to3.pytree import Node  # type: ignore
 
 import warnings
 from refers.errors import (
@@ -25,6 +26,7 @@ class Tag:
         line_num_start: int,
         line_num_end: int,
         full_line: str,
+        node: Node,
     ):
         self._name = name
         self._line_num = line_num
@@ -33,6 +35,7 @@ class Tag:
         self._line_num_start = line_num_start
         self._line_num_end = line_num_end
         self._full_line = full_line
+        self._node = node  # TODO implement node interaction
 
     @property
     def name(self):

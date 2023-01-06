@@ -38,10 +38,10 @@ def test_tags_error_multiple_tags_one_line(create_tmp_file):
             (
                 "test.py",
                 """# Test file
-    a = 1  # @tag:a
-    b = 1  # @tag:b
-    c = 1
-    d = 1  # @tag:a
+a = 1  # @tag:a
+b = 1  # @tag:b
+c = 1
+d = 1  # @tag:a
 """,
             ),
         )
@@ -75,13 +75,11 @@ e = (
 )
 def test_tags_no_option(create_tmp_file):
     tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
-
     tag = tags.get_tag("a")
     assert tag.name == "a"
     assert tag.file.name == "test.py"
     assert tag.line_num == 2
     assert tag.line == tag.full_line == "a = 1  # @tag:a"
-
     tag = tags.get_tag("b")
     assert tag.name == "b"
     assert tag.file.name == "test.py"
@@ -99,7 +97,97 @@ def test_tags_no_option(create_tmp_file):
     assert tag.file.name == "test.py"
     assert tag.line_num == 7
     assert tag.line == "1  # @tag:e"
-    assert tag.full_line == "e = 1  # @tag:e"  # black'd
+    assert (
+        tag.full_line
+        == """e = (
+1  # @tag:e
+)"""
+    )
+
+
+@pytest.mark.parametrize(
+    "create_tmp_file",
+    [
+        (
+            (
+                "test.py",
+                """# Test file
+a = 1  # note before tag @tag:a note after tag
+b =  1 # @tag:b note after tag
+c = 1
+d =1  # note before tag @tag:d
+e = ( # @tag:fe
+1 # note whitespace after  @tag:e  
+)#note whitespace after tag@tag:ef 
+f=1
+""",  # noqa
+            ),
+        )
+    ],
+    indirect=True,
+)
+def test_tags_hard_cases(create_tmp_file):
+    tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
+
+    tag = tags.get_tag("a")
+    assert tag.name == "a"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 2
+    assert tag.line == tag.full_line == "a = 1  # note before tag @tag:a note after tag"
+
+    tag = tags.get_tag("b")
+    assert tag.name == "b"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 3
+    assert tag.line == tag.full_line == "b =  1 # @tag:b note after tag"
+
+    tag = tags.get_tag("d")
+    assert tag.name == "d"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 5
+    assert tag.line == tag.full_line == "d =1  # note before tag @tag:d"
+
+    tag = tags.get_tag("e")
+    assert tag.name == "e"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 7
+    assert tag.line_num_start == 6
+    assert tag.line_num_end == 8
+    assert tag.line == "1 # note whitespace after  @tag:e  "
+    assert (
+        tag.full_line
+        == """e = ( # @tag:fe
+1 # note whitespace after  @tag:e  
+)#note whitespace after tag@tag:ef """  # noqa
+    )
+
+    tag = tags.get_tag("fe")
+    assert tag.name == "fe"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 6
+    assert tag.line_num_start == 6
+    assert tag.line == "e = ( # @tag:fe"
+    assert tag.line_num_end == 8
+    assert (
+        tag.full_line
+        == """e = ( # @tag:fe
+1 # note whitespace after  @tag:e  
+)#note whitespace after tag@tag:ef """  # noqa
+    )
+
+    tag = tags.get_tag("ef")
+    assert tag.name == "ef"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 8
+    assert tag.line_num_start == 6
+    assert tag.line_num_end == 8
+    assert tag.line == ")#note whitespace after tag@tag:ef "
+    assert (
+        tag.full_line
+        == """e = ( # @tag:fe
+1 # note whitespace after  @tag:e  
+)#note whitespace after tag@tag:ef """  # noqa
+    )
 
 
 @pytest.mark.parametrize(
@@ -131,7 +219,7 @@ def f3():
             ),
             (
                 "file_no_refs.py",
-                "This is a test file with no refs",
+                "# This is a test file with no refs",
             ),
         ),
     ],
@@ -170,7 +258,7 @@ def f3():
             ),
             (
                 "file_no_refs.py",
-                "This is a test file with no refs",
+                "# This is a test file with no refs",
             ),
         ),
     ],
