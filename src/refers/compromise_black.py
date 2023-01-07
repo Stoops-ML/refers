@@ -46,59 +46,9 @@ from typing import (
 )
 
 from blib2to3.pytree import Node, Leaf  # type: ignore
+from black.linegen import normalize_prefix
 
 LN = Union[Leaf, Node]
-from refers.definitions import TAG_COMMENT_ID
-import re
-
-
-def normalize_prefix(leaf: Leaf, *, inside_brackets: bool) -> None:
-    """redefine to:
-        1. Don't modify leaf's prefix unless not `inside_brackets`.
-        2. pull comments from the next leaf's sibling's prefix into the value of the current leaf. This ensures that
-           comments appear as they do in the source file. This requires deleting tags from the next leaf's sibling's
-           prefix, which ensures that tags won't appear twice in the string representation of the line.
-
-    Original docstring:
-    Leave existing extra newlines if not `inside_brackets`. Remove everything
-    else.
-
-    Note: don't use backslashes for formatting or you'll lose your voting rights.
-    """
-    parent_leaf, next_leaf, current_leaf = leaf.parent, leaf.next_sibling, leaf
-    while next_leaf is None and parent_leaf.type != token.NT_OFFSET:
-        parent_leaf = parent_leaf.parent
-        for child in parent_leaf.children:
-            if id(child) == id(current_leaf.parent):
-                current_leaf = current_leaf.parent
-                next_leaf = child.next_sibling
-                break
-    if isinstance(next_leaf, Leaf):
-        re_tag = re.search(rf"^(\s*#.*{TAG_COMMENT_ID}\w+.*)\n?.*", next_leaf.prefix)
-        if re_tag is not None:
-            # other matches may be a standalone comment on a new line
-            # when the leaf is within brackets
-            comment = re_tag.groups()[0]
-            leaf.value += comment
-            next_leaf.prefix = next_leaf.prefix.replace(comment, "")
-            # for i, child in enumerate(leaf.parent.children):
-            #     if id(child) == id(leaf):
-            #         break
-            # leaf.parent.insert_child(i + 1, Leaf(token.NEWLINE, "", prefix=re_tag.group()))
-
-    if not inside_brackets:
-        spl = leaf.prefix.split("#")
-        if "\\" not in spl[0]:
-            nl_count = spl[-1].count("\n")
-            if len(spl) > 1:
-                nl_count -= 1
-            leaf.prefix = re.sub(
-                r"#.*$", "", leaf.prefix, flags=re.DOTALL
-            )  # remove comments and newline from prefix
-            leaf.prefix += "\n" * nl_count  # append, not replace
-            return
-
-    # leaf.prefix = ""
 
 
 @dataclass

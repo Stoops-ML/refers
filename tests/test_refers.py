@@ -114,11 +114,18 @@ def test_tags_no_option(create_tmp_file):
                 """# Test file
 a = 1  # note before tag @tag:a note after tag
 b =  1 # @tag:b note after tag
+# standalone comment
 c = 1
 d =1  # note before tag @tag:d
 e = ( # @tag:fe
 1 # note whitespace after  @tag:e  
 )#note whitespace after tag@tag:ef 
+# standalone comment
+f = (
+1 # comment
+# standalone comment 
+)  # @tag:f  
+# standalone comment
 f=1
 """,  # noqa
             ),
@@ -144,15 +151,15 @@ def test_tags_hard_cases(create_tmp_file):
     tag = tags.get_tag("d")
     assert tag.name == "d"
     assert tag.file.name == "test.py"
-    assert tag.line_num == 5
+    assert tag.line_num == 6
     assert tag.line == tag.full_line == "d =1  # note before tag @tag:d"
 
     tag = tags.get_tag("e")
     assert tag.name == "e"
     assert tag.file.name == "test.py"
-    assert tag.line_num == 7
-    assert tag.line_num_start == 6
-    assert tag.line_num_end == 8
+    assert tag.line_num == 8
+    assert tag.line_num_start == 7
+    assert tag.line_num_end == 9
     assert tag.line == "1 # note whitespace after  @tag:e  "
     assert (
         tag.full_line
@@ -164,10 +171,10 @@ def test_tags_hard_cases(create_tmp_file):
     tag = tags.get_tag("fe")
     assert tag.name == "fe"
     assert tag.file.name == "test.py"
-    assert tag.line_num == 6
-    assert tag.line_num_start == 6
+    assert tag.line_num == 7
+    assert tag.line_num_start == 7
     assert tag.line == "e = ( # @tag:fe"
-    assert tag.line_num_end == 8
+    assert tag.line_num_end == 9
     assert (
         tag.full_line
         == """e = ( # @tag:fe
@@ -178,15 +185,30 @@ def test_tags_hard_cases(create_tmp_file):
     tag = tags.get_tag("ef")
     assert tag.name == "ef"
     assert tag.file.name == "test.py"
-    assert tag.line_num == 8
-    assert tag.line_num_start == 6
-    assert tag.line_num_end == 8
+    assert tag.line_num == 9
+    assert tag.line_num_start == 7
+    assert tag.line_num_end == 9
     assert tag.line == ")#note whitespace after tag@tag:ef "
     assert (
         tag.full_line
         == """e = ( # @tag:fe
 1 # note whitespace after  @tag:e  
 )#note whitespace after tag@tag:ef """  # noqa
+    )
+
+    tag = tags.get_tag("f")
+    assert tag.name == "f"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 14
+    assert tag.line_num_start == 11
+    assert tag.line_num_end == 14
+    assert tag.line == ")  # @tag:f  "
+    assert (
+        tag.full_line
+        == """f = (
+1 # comment
+# standalone comment 
+)  # @tag:f  """  # noqa
     )
 
 

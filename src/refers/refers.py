@@ -112,9 +112,10 @@ def get_tags(
                     if current_line.leaves[0].type == nodes.STANDALONE_COMMENT:
                         continue
 
-                    full_line = re.sub(r"(.*)\n$", r"\1", str(current_line))
                     line_num_start = current_line.leaves[0].get_lineno()
                     line_num_end = current_line.leaves[-1].get_lineno()
+                    full_line = "".join(src_lines[line_num_start - 1 : line_num_end])
+                    full_line = re.sub(r"(.*)\n$", r"\1", str(full_line))
 
                     for line_num in range(line_num_start, line_num_end + 1):
                         src_line = re.sub(
