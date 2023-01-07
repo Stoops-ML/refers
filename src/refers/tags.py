@@ -98,13 +98,13 @@ class Tag:
         return self.file.name + " L" + str(self.line_num)
 
     def visit_quotecode(self, *args, **kwargs) -> str:
-        """return code without comment"""
+        """return code without comments"""
         if self.file.suffix.lower() not in COMMENT_SYMBOL.keys():
             warnings.warn(f"{self.file.suffix} not recognised. Using :quote option")
             return self.full_line
         return re.sub(
-            rf"{COMMENT_SYMBOL[self.file.suffix.lower()]}.*$",
-            "",
+            rf"{COMMENT_SYMBOL[self.file.suffix.lower()]}.*(\n?)",
+            r"\1",
             self.full_line,
         ).strip()
 
