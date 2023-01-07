@@ -35,7 +35,7 @@ import re
 from pathlib import Path
 from refers.definitions import (
     CODE_RE_TAG,
-    DOC_REGEX_TAG,
+    DOC_RE_TAG,
     DOC_OUT_ID,
     LIBRARY_NAME,
 )
@@ -162,7 +162,7 @@ def replace_tags(
         try:
             with open(f, "r") as r_doc, open(out_fpath, "w") as w_doc:
                 for line in r_doc:
-                    re_tags = re.finditer(DOC_REGEX_TAG, line)
+                    re_tags = re.finditer(DOC_RE_TAG, line)
                     for re_tag in re_tags:
                         ref_found = True
                         tag_name, option = re_tag.group(1), re_tag.group(2)
