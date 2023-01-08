@@ -111,7 +111,7 @@ def test_tags_no_option(create_tmp_file):
         (
             (
                 "test.py",
-                """# Test file
+                """# Test file       
 a = 1  # note before tag @tag:a note after tag
 b =  1 # @tag:b note after tag
 # standalone comment
@@ -127,6 +127,15 @@ f = (
 )  # @tag:f  
 # standalone comment
 f=1
+                
+def f():
+    a = 1  # @tag:aa
+    return a
+
+
+class F():
+    a = 1  # @tag:bb
+         
 """,  # noqa
             ),
         )
@@ -210,6 +219,22 @@ def test_tags_hard_cases(create_tmp_file):
 # standalone comment 
 )  # @tag:f  """  # noqa
     )
+
+    tag = tags.get_tag("aa")
+    assert tag.name == "aa"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 19
+    assert tag.line == tag.full_line == "a = 1  # @tag:aa"
+    assert tag.func_name == "f"
+    assert tag.class_name is None
+
+    tag = tags.get_tag("bb")
+    assert tag.name == "bb"
+    assert tag.file.name == "test.py"
+    assert tag.line_num == 24
+    assert tag.line == tag.full_line == "a = 1  # @tag:bb"
+    assert tag.func_name is None
+    assert tag.class_name == "F"
 
 
 @pytest.mark.parametrize(
@@ -576,6 +601,54 @@ def test_replace_tags(create_tmp_file: Path):
     )
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
     ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5"
+    refers_file = create_tmp_file.parent / "test_refers.md"
+    with open(refers_file, "r") as f:
+        assert ans == f.read()
+
+
+@pytest.mark.parametrize(
+    "create_tmp_file",
+    [
+        (
+            (
+                "test.py",
+                """# Test file
+a = 1  # @tag:a
+b = 1  # @tag:b
+c = 1
+d = 1  # @tag:d
+def func1():
+    return 1#@tag:f
+class A(object):
+    def __init__(self):
+        pass#@tag:A
+def func2():
+    def func3():# @tag:func3a
+        return 2# @tag:func3b
+""",
+            ),
+            (
+                "test.md",
+                """# Test file
+On line [@ref:a:line](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
+`b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
+There is one class @ref:A:class, a function @ref:f:func, and a nested function @ref:func3a:func (== @ref:func3b:func)""",
+            ),
+        )
+    ],
+    indirect=True,
+)
+def test_replace_tags_with_class_and_functions(create_tmp_file: Path):
+    tags = get_tags(Path().cwd(), tag_files=[create_tmp_file])
+    replace_tags(
+        create_tmp_file.parent,
+        tags,
+        False,
+        [".md"],
+    )
+    comment = COMMENT_SYMBOL[create_tmp_file.suffix]
+    ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is one class A, a function func1, and a nested function func3 (== func3)"
     refers_file = create_tmp_file.parent / "test_refers.md"
     with open(refers_file, "r") as f:
         assert ans == f.read()

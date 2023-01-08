@@ -13,16 +13,18 @@ Changes of line placement, file name, relative path etc. are reflected in the up
 
 ## Reference options
 
-| `ref` option  | result                                            |
-|---------------|---------------------------------------------------|
-| *blank*       | file name and line number                         |
-| :file         | file name                                         |
-| :line         | line number                                       |
-| :link         | relative link to file                             |
-| :linkline     | relative link to line in file                     |
-| :fulllink     | full path link to file                            |
-| :fulllinkline | full path link to line in file                    |
-| :quote        | quote line                                        |
-| :quotecode    | quote line of code without comment                |
+| `ref` option  | result                               |
+|---------------|--------------------------------------|
+| *blank*       | file name and line number            |
+| :file         | file name                            |
+| :line         | line number                          |
+| :link         | relative link to file                |
+| :linkline     | relative link to line in file        |
+| :fulllink     | full path link to file               |
+| :fulllinkline | full path link to line in file       |
+| :quote        | quote line                           |
+| :quotecode    | quote line of code without comment   |
+| :func         | get function name that contains line |
+| :class        | get class name that contains line    |
 
 Relative paths are given from the directory containing the pyproject.toml.

@@ -1,3 +1,5 @@
+import token
+from black.nodes import syms
 from typing import (
     Optional,
 )
@@ -8,6 +10,8 @@ import warnings
 from refers.errors import (
     TagAlreadyExistsError,
     TagNotFoundError,
+    TagNotInClass,
+    TagNotInFunction,
 )
 import re
 from pathlib import Path
@@ -26,7 +30,7 @@ class Tag:
         line_num_start: int,
         line_num_end: int,
         full_line: str,
-        node: Node,
+        parent_node: Node,
     ):
         self._name = name
         self._line_num = line_num
@@ -35,7 +39,24 @@ class Tag:
         self._line_num_start = line_num_start
         self._line_num_end = line_num_end
         self._full_line = full_line
-        self._node = node  # TODO implement node interaction
+
+        current_parent, self._func_name = parent_node, None
+        while self.func_name is None and current_parent.type != token.NT_OFFSET:
+            if current_parent.type == syms.funcdef:
+                self._func_name = re.sub(
+                    r"\s*(\w+)\s*\n?", r"\1", str(current_parent.children[1])
+                )
+                break
+            current_parent = current_parent.parent
+
+        current_parent, self._class_name = parent_node, None
+        while self._class_name is None and current_parent.type != token.NT_OFFSET:
+            if current_parent.type == syms.classdef:
+                self._class_name = re.sub(
+                    r"\s*(\w+)\s*\n?", r"\1", str(current_parent.children[1])
+                )
+                break
+            current_parent = current_parent.parent
 
     @property
     def name(self):
@@ -65,13 +86,13 @@ class Tag:
     def full_line(self):
         return self._full_line
 
-    @full_line.setter
-    def full_line(self, line):
-        self._full_line = line
+    @property
+    def func_name(self):
+        return self._func_name
 
-    @full_line.setter
-    def full_line(self, line):
-        self._full_line = line
+    @property
+    def class_name(self):
+        return self._class_name
 
     def visit_name(self, *args, **kwargs) -> str:
         return self._name
@@ -132,6 +153,16 @@ class Tag:
     @staticmethod
     def visit_unknown_tag(*args, **kwargs) -> str:
         return "TAG-NOT-FOUND"
+
+    def visit_func(self, *args, **kwargs):
+        if self._func_name is None:
+            raise TagNotInFunction
+        return self._func_name
+
+    def visit_class(self, *args, **kwargs):
+        if self._class_name is None:
+            raise TagNotInClass
+        return self._class_name
 
 
 class Tags:
