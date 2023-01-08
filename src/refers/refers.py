@@ -134,9 +134,7 @@ def get_tags(
                             line_num_start,
                             line_num_end,
                             full_line,
-                            current_line.parent_nodes[
-                                0
-                            ],  # TODO implement get node type
+                            current_line.leaves[0].parent,
                         )
                         tags.add_tag(tag)
     return tags
