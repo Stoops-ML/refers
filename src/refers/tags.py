@@ -1,23 +1,20 @@
+import re
 import token
-from black.nodes import syms
+import warnings
+from pathlib import Path
 from typing import (
     Optional,
 )
 
+from black.nodes import syms
 from blib2to3.pytree import Node  # type: ignore
-
-import warnings
-from refers.errors import (
-    TagAlreadyExistsError,
-    TagNotFoundError,
-    TagNotInClass,
-    TagNotInFunction,
-)
-import re
-from pathlib import Path
 from refers.definitions import (
     COMMENT_SYMBOL,
 )
+from refers.errors import TagAlreadyExistsError
+from refers.errors import TagNotFoundError
+from refers.errors import TagNotInClass
+from refers.errors import TagNotInFunction
 
 
 class Tag:

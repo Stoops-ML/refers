@@ -1,7 +1,8 @@
-from black import nodes
 from typing import (
     TypeVar,
 )
+
+from black import nodes
 
 # types
 T = TypeVar("T")
@@ -79,7 +80,7 @@ def get_tags(
     mode = black.Mode()
     tags = Tags()
     for f in files:
-        with open(f, "r") as fread:
+        with open(f) as fread:
             if not f.suffix == ".py":
                 for i, full_line in enumerate(fread):
                     full_line = full_line.strip()
@@ -160,7 +161,7 @@ def replace_tags(
         ref_found = False
         out_fpath = f.parent / f"{f.stem}{DOC_OUT_ID}{f.suffix}"
         try:
-            with open(f, "r") as r_doc, open(out_fpath, "w") as w_doc:
+            with open(f) as r_doc, open(out_fpath, "w") as w_doc:
                 for line in r_doc:
                     re_tags = re.finditer(DOC_RE_TAG, line)
                     for re_tag in re_tags:
