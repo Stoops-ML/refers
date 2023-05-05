@@ -1,14 +1,15 @@
 import re
-from refers.refers import get_tags, format_doc, replace_tags
 from pathlib import Path
+
 import pytest
-from refers.errors import (
-    MultipleTagsInOneLine,
-    TagAlreadyExistsError,
-    TagNotFoundError,
-    OptionNotFoundError,
-)
 from refers.definitions import COMMENT_SYMBOL
+from refers.errors import MultipleTagsInOneLine
+from refers.errors import OptionNotFoundError
+from refers.errors import TagAlreadyExistsError
+from refers.errors import TagNotFoundError
+from refers.refers import format_doc
+from refers.refers import get_tags
+from refers.refers import replace_tags
 
 
 @pytest.mark.parametrize(
@@ -602,7 +603,7 @@ def test_replace_tags(create_tmp_file: Path):
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
     ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5"
     refers_file = create_tmp_file.parent / "test_refers.md"
-    with open(refers_file, "r") as f:
+    with open(refers_file) as f:
         assert ans == f.read()
 
 
@@ -650,7 +651,7 @@ def test_replace_tags_with_class_and_functions(create_tmp_file: Path):
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
     ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is one class A, a function func1, and a nested function func3 (== func3)"
     refers_file = create_tmp_file.parent / "test_refers.md"
-    with open(refers_file, "r") as f:
+    with open(refers_file) as f:
         assert ans == f.read()
 
 
@@ -690,7 +691,7 @@ def test_replace_tags_allow_unknown_tags(create_tmp_file: Path):
     comment = COMMENT_SYMBOL[create_tmp_file.suffix]
     ans = f"# Test file\nOn line [2](test{create_tmp_file.suffix}#L2) the code has a = 1. This is it's link: test{create_tmp_file.suffix}.\n`b` appears in test{create_tmp_file.suffix} L3, is located {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix} and has contents: b = 1  {comment} @tag:b.\n`d` appears in file test{create_tmp_file.suffix}, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is {create_tmp_file.parent.as_posix()}/test{create_tmp_file.suffix}#L5\nThere is no tag for 'c': TAG-NOT-FOUND"
     refers_file = create_tmp_file.parent / "test_refers.md"
-    with open(refers_file, "r") as f:
+    with open(refers_file) as f:
         assert ans == f.read()
 
 
