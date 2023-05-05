@@ -24,3 +24,11 @@ class NotAFileError(Exception):
 
 class PyprojectNotFound(Exception):
     pass
+
+
+class TagNotInFunction(Exception):
+    pass
+
+
+class TagNotInClass(Exception):
+    pass

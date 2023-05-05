@@ -1,28 +1,47 @@
-import warnings
+from typing import (
+    TypeVar,
+)
+
+from black import nodes
+
+# types
+T = TypeVar("T")
+Index = int
+LeafID = int
+
+from typing import (
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
+
+from blib2to3.pytree import Node, Leaf  # type: ignore
+
+LN = Union[Leaf, Node]
+T = TypeVar("T")
+from refers.tags import Tag, Tags
+
+
+import black
+from black.parsing import lib2to3_parse
+
 from refers.errors import (
-    TagAlreadyExistsError,
     MultipleTagsInOneLine,
     TagNotFoundError,
     PyprojectNotFound,
     OptionNotFoundError,
 )
-from typing import Dict
-from typing import Optional
-from typing import List
-from typing import Tuple
-from typing import Union
 import re
 from pathlib import Path
 from refers.definitions import (
     CODE_RE_TAG,
-    UNKNOWN_ID,
-    DOC_REGEX_TAG,
+    DOC_RE_TAG,
     DOC_OUT_ID,
     LIBRARY_NAME,
-    COMMENT_SYMBOL,
-    OPTIONS,
 )
 import toml
+from refers.compromise_black import LineGenerator
 
 
 def get_files(
@@ -52,37 +71,81 @@ def get_tags(
     dirs2search: Optional[List[Path]] = None,
     dirs2ignore: Optional[List[Path]] = None,
     tag_files: Optional[List[Path]] = None,
-) -> Dict[str, Tuple[Path, int, str]]:
+) -> Tags:
     files = (
         get_files(pdir, accepted_tag_extensions, dirs2ignore, dirs2search)
         if tag_files is None
         else iter(tag_files)
     )
-    dict_tag: Dict[str, Tuple[Path, int, str]] = {}
+    mode = black.Mode()
+    tags = Tags()
     for f in files:
-        with open(f, "r") as fread:
-            for i, line in enumerate(fread):
-                tag = re.findall(CODE_RE_TAG, line)
-                if len(tag) == 0:
-                    continue
-                elif len(tag) > 1:  # TODO allow this behaviour?
-                    raise MultipleTagsInOneLine(
-                        f"File {str(f)} has multiple tags on line {i + 1}"
+        with open(f) as fread:
+            if not f.suffix == ".py":
+                for i, full_line in enumerate(fread):
+                    full_line = full_line.strip()
+                    line_num = i + 1
+                    tag_names = re.findall(CODE_RE_TAG, full_line)
+                    if len(tag_names) == 0:
+                        continue
+                    elif len(tag_names) > 1:
+                        raise MultipleTagsInOneLine
+                    tag_name = tag_names[0]
+                    tag = Tag(
+                        tag_name,
+                        line_num,
+                        full_line,
+                        f,
+                        line_num,
+                        line_num,
+                        full_line,
+                        Node(256, []),
                     )
-                if tag[0] in dict_tag.keys():
-                    raise TagAlreadyExistsError(
-                        f"""Tag {tag[0]} already exists.
-                    Earlier tag {dict_tag[tag[0]]}.
-                    New tag found in {str(f)} on line {i + 1}."""
-                    )
-                dict_tag[tag[0]] = (f, i + 1, line.strip())
+                    tags.add_tag(tag)
+            else:
+                src_lines = fread.readlines()
+                fread.seek(0)
+                src_contents = fread.read()
+                src_node = lib2to3_parse(src_contents.lstrip(), mode.target_versions)
+                lines = LineGenerator(mode=mode)
+                for current_line in lines.visit(src_node):
+                    # standalone comments hold no information in Leaf and is therefore not supported
+                    if current_line.leaves[0].type == nodes.STANDALONE_COMMENT:
+                        continue
 
-    return dict_tag
+                    line_num_start = current_line.leaves[0].get_lineno()
+                    line_num_end = current_line.leaves[-1].get_lineno()
+                    full_line = "".join(src_lines[line_num_start - 1 : line_num_end])
+                    full_line = re.sub(
+                        r"^\s*(.*)\n$", r"\1", full_line, flags=re.DOTALL
+                    )
+
+                    for line_num in range(line_num_start, line_num_end + 1):
+                        src_line = re.sub(
+                            r"\s*(.*)\n$", r"\1", src_lines[line_num - 1]
+                        )  # strip newline
+                        tag_names = re.findall(CODE_RE_TAG, src_line)
+                        if len(tag_names) == 0:
+                            continue
+                        elif len(tag_names) > 1:
+                            raise MultipleTagsInOneLine
+                        tag = Tag(
+                            tag_names[0],
+                            line_num,
+                            src_line,
+                            f,
+                            line_num_start,
+                            line_num_end,
+                            full_line,
+                            current_line.leaves[0].parent,
+                        )
+                        tags.add_tag(tag)
+    return tags
 
 
 def replace_tags(
     pdir: Path,
-    tags: Dict[str, Tuple[Path, int, str]],
+    tags: Tags,
     allow_not_found_tags: bool,
     accepted_ref_extensions: Optional[List[str]] = None,
     dirs2search: Optional[List[Path]] = None,
@@ -98,64 +161,41 @@ def replace_tags(
         ref_found = False
         out_fpath = f.parent / f"{f.stem}{DOC_OUT_ID}{f.suffix}"
         try:
-            with open(f, "r") as r_doc, open(out_fpath, "w") as w_doc:
+            with open(f) as r_doc, open(out_fpath, "w") as w_doc:
                 for line in r_doc:
-                    re_tags = re.finditer(DOC_REGEX_TAG, line)
+                    re_tags = re.finditer(DOC_RE_TAG, line)
                     for re_tag in re_tags:
                         ref_found = True
-                        tag, option = re_tag.group(1), re_tag.group(2)
+                        tag_name, option = re_tag.group(1), re_tag.group(2)
+                        if option is None:
+                            option = ":default"
+
+                        try:
+                            tag = tags.get_tag(tag_name)
+                        except TagNotFoundError as e:
+                            if allow_not_found_tags:
+                                option = ":unknown_tag"
+                            else:
+                                raise e
 
                         # replace ref with tag:option
-                        if tag not in tags.keys() and not allow_not_found_tags:
-                            raise TagNotFoundError(
-                                f"Tag {tag} not found. Possible tags: {list(tags.keys())}"
-                            )
-                        elif tag not in tags.keys() and allow_not_found_tags:
-                            rep = UNKNOWN_ID
-                        elif option is None:
-                            rep = tags[tag][0].name + " L" + str(tags[tag][1])
-                        elif option == ":quote":
-                            rep = tags[tag][2]
-                        elif option == ":quotecode":
-                            if tags[tag][0].suffix.lower() not in COMMENT_SYMBOL.keys():
-                                warnings.warn(
-                                    f"{tags[tag][0].suffix} not recognised. Using :quote option"
-                                )
-                                rep = tags[tag][2]
-                            else:
-                                rep = re.sub(
-                                    rf"{COMMENT_SYMBOL[tags[tag][0].suffix.lower()]}.*$",
-                                    "",
-                                    tags[tag][2],
-                                ).strip()
-                        elif option == ":fulllinkline":
-                            rep = tags[tag][0].as_posix() + "#L" + str(tags[tag][1])
-                        elif option == ":fulllink":
-                            rep = tags[tag][0].as_posix()
-                        elif option == ":linkline":
-                            rep = (
-                                tags[tag][0].relative_to(pdir).as_posix()
-                                + "#L"
-                                + str(tags[tag][1])
-                            )
-                        elif option == ":link":
-                            rep = tags[tag][0].relative_to(pdir).as_posix()
-                        elif option == ":line":
-                            rep = str(tags[tag][1])
-                        elif option == ":file":
-                            rep = tags[tag][0].name
-                        elif re.search(r"^:p+$", option) is not None:
-                            rep = (
-                                tags[tag][0].parent.relative_to(
-                                    tags[tag][0].parents[option.count("p")]
-                                )
-                                / tags[tag][0].name
-                            ).as_posix()
-                        else:
+                        visit = getattr(tag, f"visit_{option[1:]}", None)
+                        if visit is None:
+                            visits = [
+                                func.replace("visit_", "")
+                                for func in dir(Tag)
+                                if (callable(getattr(Tag, func)) and "visit_" in func)
+                            ]
                             raise OptionNotFoundError(
-                                f"Option {option} of tag {tag} not found. Possible options: {OPTIONS}"
+                                f"Option {option} of tag {tag_name} not found. Possible options: {visits}"
                             )
-                        line = re.sub(rf"{re_tag.group(0)}(?![a-zA-Z:])", rep, line)
+                        else:
+                            kwargs = {"parent_dir": pdir}
+                            line = re.sub(
+                                rf"{re_tag.group(0)}(?![a-zA-Z:])",
+                                visit(**kwargs),
+                                line,
+                            )
                     w_doc.write(line)
             if not ref_found:
                 out_fpath.unlink()
@@ -187,7 +227,7 @@ def format_doc(
     :return:
     """
 
-    # get root dir
+    # get root dir TODO use find_root_project() from black: https://github.com/psf/black/blob/d97b7898b34b67eb3c6839998920e17ac8c77908/src/black/files.py#L43
     if rootdir is None:  # TODO follow pytest rootdir finding algorithm
         p = Path.cwd()
         while rootdir is None:
