@@ -8,6 +8,7 @@ toml = "~=0.10.2"
 black = ">=23.0.0"
 
 [dev-packages]
+tox = "*"
 flake8 = "*"
 mypy = "*"
 pre-commit = "*"
