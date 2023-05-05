@@ -1,19 +1,19 @@
 """sorry black, you've been compromised"""
 from functools import partial
-from typing import (
-    Iterator,
-    TypeVar,
-)
+from typing import Iterator
 from typing import Set
+from typing import TypeVar
 
 from black.comments import generate_comments
-from black.mode import Mode, Preview
+from black.mode import Mode
 from black.nodes import ASSIGNMENTS
-from black.nodes import Visitor
-from black.nodes import WHITESPACE, STATEMENT
 from black.nodes import is_name_token
-from black.nodes import is_stub_suite, is_stub_body
+from black.nodes import is_stub_body
+from black.nodes import is_stub_suite
+from black.nodes import STATEMENT
 from black.nodes import syms
+from black.nodes import Visitor
+from black.nodes import WHITESPACE
 
 # types
 T = TypeVar("T")
@@ -69,7 +69,7 @@ class LineGenerator(Visitor[Line]):
         """Default `visit_*()` implementation. Recurses to children of `node`."""
         if isinstance(node, Leaf):
             any_open_brackets = self.current_line.bracket_tracker.any_open_brackets()
-            for comment in generate_comments(node, preview=self.mode.preview):
+            for comment in generate_comments(node):
                 if any_open_brackets:
                     # any comment within brackets is subject to splitting
                     self.current_line.append(comment)
@@ -138,30 +138,27 @@ class LineGenerator(Visitor[Line]):
 
     def visit_funcdef(self, node: Node) -> Iterator[Line]:
         """Visit function definition."""
-        if Preview.annotation_parens not in self.mode:
-            yield from self.visit_stmt(node, keywords={"def"}, parens=set())
-        else:
-            yield from self.line()
+        yield from self.line()
 
-            # Remove redundant brackets around return type annotation.
-            # is_return_annotation = False
-            # for child in node.children:
-            #     if child.type == token.RARROW:
-            #         is_return_annotation = True
-            #     elif is_return_annotation:
-            #         if child.type == syms.atom and child.children[0].type == token.LPAR:
-            #             if maybe_make_parens_invisible_in_atom(
-            #                 child,
-            #                 parent=node,
-            #                 remove_brackets_around_comma=False,
-            #             ):
-            #                 wrap_in_parentheses(node, child, visible=False)
-            #         else:
-            #             wrap_in_parentheses(node, child, visible=False)
-            #         is_return_annotation = False
+        # Remove redundant brackets around return type annotation.
+        # is_return_annotation = False
+        # for child in node.children:
+        #     if child.type == token.RARROW:
+        #         is_return_annotation = True
+        #     elif is_return_annotation:
+        #         if child.type == syms.atom and child.children[0].type == token.LPAR:
+        #             if maybe_make_parens_invisible_in_atom(
+        #                 child,
+        #                 parent=node,
+        #                 remove_brackets_around_comma=False,
+        #             ):
+        #                 wrap_in_parentheses(node, child, visible=False)
+        #         else:
+        #             wrap_in_parentheses(node, child, visible=False)
+        #         is_return_annotation = False
 
-            for child in node.children:
-                yield from self.visit(child)
+        for child in node.children:
+            yield from self.visit(child)
 
     def visit_match_case(self, node: Node) -> Iterator[Line]:
         """Visit either a match or case statement."""
