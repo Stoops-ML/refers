@@ -1,6 +1,7 @@
-import pytest
-from pathlib import Path
 import re
+from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture
@@ -10,12 +11,12 @@ def create_tmp_file(request, tmp_path):
     :param request: Tuple containing files to create
     :return: Path object of the first file given
     """
-    for (fname, flines) in request.param:
+    for fname, flines in request.param:
         tmp_file = tmp_path / fname
         with open(tmp_file, "w") as f:
             f.write(flines)
     yield tmp_path / request.param[0][0]  # return path to first file given
-    for (fname, flines) in request.param:
+    for fname, flines in request.param:
         fname = Path(fname)
         tmp_file = tmp_path / fname
         tmp_file.unlink()
@@ -35,7 +36,7 @@ def check_refers_test_files(request, tmp_path):
 
     tmp_folder = tmp_path / "test"
     tmp_folder.mkdir(exist_ok=True)
-    for (fname, flines) in request.param:
+    for fname, flines in request.param:
         tmp_file = tmp_folder / fname
         assert (
             re.search(
