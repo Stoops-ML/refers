@@ -1,9 +1,40 @@
+[tool.poetry]
+name = "refers"
+version = "0.0.3"
+description = "Reference code to improve explainability"
+authors = ["Daniel Stoops <danielstoops25@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+toml = "^0.10.2"
+black = "^24.2.0"
+
+[tool.poetry.group.dev.dependencies]
+tox = "^4.14.1"
+flake8 = "^7.0.0"
+mypy = "^1.9.0"
+pre-commit = "^3.6.2"
+types-toml = "^0.10.8.20240310"
+pytest = "^8.1.1"
+reorder-python-imports = "^3.12.0"
+pytest-cov = "^4.1.0"
+flake8-pyproject = "^1.2.3"
+poetry-types = "^0.5.0"
+
+[tool.poetry.group.types.dependencies]
+types-toml = "^0.10.8.20240310"
+
 [build-system]
-requires = ["setuptools>=42.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+refers = "refers.cli:run"
 
 [tool.mypy]
-mypy_path = "src"
+mypy_path = "refers"
 check_untyped_defs = true
 disallow_any_generics = true
 ignore_missing_imports = true
@@ -15,3 +46,49 @@ warn_return_any = true
 warn_unreachable = true
 warn_unused_configs = true
 no_implicit_reexport = true
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+addopts = [
+    "--cov=refers",
+    "--cov-fail-under=75",
+    "--cov-report=term-missing",
+    "--cov-report=term",
+    "--cov-report="
+]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist =
+    py{311}
+    lint
+isolated_build = true
+
+[testenv]
+deps =
+    pytest>=8.1.1
+    pytest-cov>=4.1.0
+setenv =
+    PYTHONPATH = {toxinidir}
+commands =
+    python -c "import sys; print(sys.version_info)"
+    python -m pytest --basetemp={envtmpdir}
+
+[testenv:lint]
+deps =
+    flake8>=7.0.0
+    flake8-pyproject>=1.2.3
+    mypy>=1.9.0
+    black>=24.2.0
+commands =
+    python -m flake8 refers/ tests/
+    python -m mypy --install-types --non-interactive
+    python -m mypy .
+    python -m black --check --diff .
+"""
+
+[tool.flake8]
+ignore = ['E203', 'E501', 'W503']
+max-line-length = 88
+count = true

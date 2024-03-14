@@ -1,10 +1,11 @@
-"""sorry black, you've been compromised"""
 from functools import partial
 from typing import Iterator
 from typing import Set
 from typing import TypeVar
+from typing import Union
 
 from black.comments import generate_comments
+from black.linegen import Line  # type:ignore
 from black.mode import Mode
 from black.nodes import ASSIGNMENTS
 from black.nodes import is_name_token
@@ -14,22 +15,16 @@ from black.nodes import STATEMENT
 from black.nodes import syms
 from black.nodes import Visitor
 from black.nodes import WHITESPACE
+from blib2to3.pgen2 import token
+from blib2to3.pytree import Leaf
+from blib2to3.pytree import Node
+
+"""sorry black, you've been compromised"""
 
 # types
 T = TypeVar("T")
 Index = int
 LeafID = int
-
-
-from blib2to3.pgen2 import token
-
-from typing import (
-    Union,
-)
-
-from blib2to3.pytree import Node, Leaf  # type: ignore
-from black.linegen import normalize_prefix, Line
-
 LN = Union[Leaf, Node]
 
 
@@ -85,7 +80,8 @@ class LineGenerator(Visitor[Line]):
                     self.current_line.append(comment)
                     yield from self.line()
 
-            normalize_prefix(node, inside_brackets=any_open_brackets)
+            if any_open_brackets:
+                node.prefix = ""
             # if self.mode.string_normalization and node.type == token.STRING:
             #     node.value = normalize_string_prefix(node.value)
             #     node.value = normalize_string_quotes(node.value)

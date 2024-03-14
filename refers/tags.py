@@ -2,15 +2,12 @@ import re
 import token
 import warnings
 from pathlib import Path
-from typing import (
-    Optional,
-)
+from typing import List
 
 from black.nodes import syms
 from blib2to3.pytree import Node  # type: ignore
-from refers.definitions import (
-    COMMENT_SYMBOL,
-)
+
+from refers.definitions import COMMENT_SYMBOL
 from refers.errors import TagAlreadyExistsError
 from refers.errors import TagNotFoundError
 from refers.errors import TagNotInClass
@@ -113,13 +110,13 @@ class Tag:
         return self._full_line
 
     def visit_default(self, *args, **kwargs) -> str:
-        return self.file.name + " L" + str(self.line_num)
+        return str(self.file.name) + " L" + str(self.line_num)
 
     def visit_quotecode(self, *args, **kwargs) -> str:
         """return code without comments"""
         if self.file.suffix.lower() not in COMMENT_SYMBOL.keys():
             warnings.warn(f"{self.file.suffix} not recognised. Using :quote option")
-            return self.full_line
+            return str(self.full_line)
         return re.sub(
             rf"{COMMENT_SYMBOL[self.file.suffix.lower()]}.*(\n?)",
             r"\1",
@@ -127,19 +124,23 @@ class Tag:
         ).strip()
 
     def visit_quote(self, *args, **kwargs) -> str:
-        return self.full_line
+        return str(self.full_line)
 
     def visit_fulllinkline(self, *args, **kwargs) -> str:
-        return self.file.as_posix() + "#L" + str(self.line_num)
+        return str(self.file.as_posix()) + "#L" + str(self.line_num)
 
     def visit_fulllink(self, *args, **kwargs) -> str:
-        return self.file.as_posix()
+        return str(self.file.as_posix())
 
     def visit_linkline(self, parent_dir: Path, *args, **kwargs) -> str:
-        return self.file.relative_to(parent_dir).as_posix() + "#L" + str(self.line_num)
+        return (
+            str(self.file.relative_to(parent_dir).as_posix())
+            + "#L"
+            + str(self.line_num)
+        )
 
     def visit_link(self, parent_dir: Path, *args, **kwargs) -> str:
-        return self.file.relative_to(parent_dir).as_posix()
+        return str(self.file.relative_to(parent_dir).as_posix())
 
     # def visit_p(self, num_parents, *args, **kwargs) -> str:
     #     return (
@@ -164,9 +165,9 @@ class Tag:
 
 class Tags:
     def __init__(self):
-        self.all_tags = []
+        self.all_tags: List[Tag] = []
 
-    def is_tag(self, tag_name: str) -> Optional[Tag]:
+    def is_tag(self, tag_name: str) -> Tag | None:
         """check if tag already exists"""
         for tag in self.all_tags:
             if tag._name == tag_name:
