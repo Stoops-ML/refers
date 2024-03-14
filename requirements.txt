@@ -1,3 +1,0 @@
-toml~=0.10.2
-setuptools>=42.0
-black>=23.0.0

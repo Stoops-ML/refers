@@ -1,47 +1,37 @@
+import re
+from pathlib import Path
+from typing import List
+from typing import Optional
 from typing import (
     TypeVar,
 )
+from typing import Union
 
+import black
+import toml
 from black import nodes
+from black.parsing import lib2to3_parse
+from blib2to3.pytree import Leaf
+from blib2to3.pytree import Node
+
+from refers.compromise_black import LineGenerator
+from refers.definitions import CODE_RE_TAG
+from refers.definitions import DOC_OUT_ID
+from refers.definitions import DOC_RE_TAG
+from refers.definitions import LIBRARY_NAME
+from refers.errors import MultipleTagsInOneLine
+from refers.errors import OptionNotFoundError
+from refers.errors import PyprojectNotFound
+from refers.errors import TagNotFoundError
+from refers.tags import Tag
+from refers.tags import Tags
 
 # types
 T = TypeVar("T")
 Index = int
 LeafID = int
 
-from typing import (
-    List,
-    Optional,
-    TypeVar,
-    Union,
-)
-
-from blib2to3.pytree import Node, Leaf  # type: ignore
-
 LN = Union[Leaf, Node]
-T = TypeVar("T")
-from refers.tags import Tag, Tags
-
-
-import black
-from black.parsing import lib2to3_parse
-
-from refers.errors import (
-    MultipleTagsInOneLine,
-    TagNotFoundError,
-    PyprojectNotFound,
-    OptionNotFoundError,
-)
-import re
-from pathlib import Path
-from refers.definitions import (
-    CODE_RE_TAG,
-    DOC_RE_TAG,
-    DOC_OUT_ID,
-    LIBRARY_NAME,
-)
-import toml
-from refers.compromise_black import LineGenerator
 
 
 def get_files(

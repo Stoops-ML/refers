@@ -2,14 +2,8 @@
 default_language_version:
   python: python3.10
 repos:
--   repo: https://github.com/psf/black
-    rev: 23.3.0
-    hooks:
-    -   id: black
-        args: [--safe]
-
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.5.0
     hooks:
     # -   id: trailing-whitespace
     -   id: end-of-file-fixer
@@ -18,30 +12,17 @@ repos:
     -   id: debug-statements
         language_version: python3
 
--   repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+-   repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.12.0
     hooks:
-    -   id: flake8
-        language_version: python3
-
-# -   repo: https://github.com/asottile/reorder_python_imports
-#     rev: v3.9.0
-#     hooks:
-#     -   id: reorder-python-imports
-#         args: [--py36-plus]
+    -   id: reorder-python-imports
+        args: [--py36-plus]
 
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.1
+    rev: v3.15.1
     hooks:
     -   id: pyupgrade
         args: [--py36-plus]
-
-# -   repo: https://github.com/pre-commit/mirrors-mypy
-#     rev: v0.960
-#     hooks:
-#     -   id: mypy
-#         files: ^src/
-#         args: []
 
 - repo: local
   hooks:
@@ -51,9 +32,24 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-
-- repo: local
-  hooks:
+      - id: black
+        name: black
+        entry: black .
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: mypy
+        name: mypy
+        entry: mypy .
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: flake8
+        name: flake8
+        entry: flake8
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: tox-check
         name: tox
         entry: tox
