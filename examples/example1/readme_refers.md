@@ -1,8 +1,9 @@
 # Example 1
-This document demonstrates the `refers` library. 
-Run the `refers` library in command prompt to output the file [readme_refers.md](readme_refers.md).
+This document demonstrates the `refers` library in action.
 
-## Demostration
+Run `refers -r example1` in command prompt to output the file [readme_refers.md](readme_refers.md), which will convert the references using the requested tags.
+
+## Demonstration
 The file [suvat.py](src/suvat.py) is a script that simulates linear motion.
 
 On line 14 the distance equation is written as follows: $d = vt + \frac{1}{2}at^2$. 
