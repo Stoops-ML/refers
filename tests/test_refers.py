@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 import pytest
@@ -751,8 +750,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line1](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
-There is no tag for 'c': @ref:c""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         )
     ],
@@ -767,10 +765,10 @@ def test_replace_tags_option_not_found(create_tmp_file):
             False,
             [".md"],
         )
-        assert (
-            re.search(r"^Tag c and keyword  not found\.", str(exc_info.value))
-            is not None
-        )
+    assert (
+        "Option :line1 of tag a not found. Possible options: ['class', 'default', 'file', 'full_line', 'fulllink', 'fulllinkline', 'func', 'line', 'line_num', 'line_num_end', 'line_num_start', 'link', 'linkline', 'name', 'quote', 'quotecode', 'unknown_tag']"
+        == str(exc_info.value)
+    )
 
 
 @pytest.mark.parametrize(
