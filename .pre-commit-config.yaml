@@ -63,3 +63,9 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [push]
+      - id: update examples
+        name: refers
+        entry: refers -r examples/example1
+        language: system
+        pass_filenames: false
+        always_run: true
