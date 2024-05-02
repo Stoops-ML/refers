@@ -354,6 +354,16 @@ def format_doc(
     else:
         tag_files = None
 
+    # checks
+    if not rootdir.exists():
+        raise ValueError(f"The root directory does not exist: {rootdir}.")
+    if dirs2search is not None:
+        for d in dirs2search:
+            if not d.exists():
+                raise ValueError(
+                    f"The following directory which was requested to be searched does not exist: {d}."
+                )
+
     # get tags
     tags = get_tags(
         rootdir, accepted_tag_extensions, dirs2search, dirs2ignore, tag_files
