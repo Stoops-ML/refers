@@ -26,6 +26,22 @@ def create_tmp_file(request, tmp_path):
 
 
 @pytest.fixture
+def create_files(request, tmp_path):
+    """
+    :param request: Tuple containing files to create
+    :return:
+    """
+
+    tmp_folder = tmp_path / "test"
+    tmp_folder.mkdir(exist_ok=True)
+    for fname, flines in request.param:
+        tmp_file = tmp_folder / fname
+        with open(tmp_file, "w") as f:
+            f.write(flines)
+    yield tmp_folder
+
+
+@pytest.fixture
 def check_refers_test_files(request, tmp_path):
     """
     Check that *_refers files are only created for files that contain refs.
