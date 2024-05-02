@@ -2,9 +2,7 @@ import re
 from pathlib import Path
 from typing import List
 from typing import Optional
-from typing import (
-    TypeVar,
-)
+from typing import TypeVar
 from typing import Union
 
 import black
@@ -240,50 +238,43 @@ def format_doc(
     pyproject_path = rootdir / "pyproject.toml"
     if pyproject_path.is_file():
         pyproject = toml.load(str(pyproject_path))
-        if LIBRARY_NAME not in pyproject["tool"].keys():
-            if "refers_path" in pyproject["tool"][LIBRARY_NAME].keys():
-                rootdir = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
-            if "allow_not_found_tags" in pyproject["tool"][LIBRARY_NAME].keys():
+        if LIBRARY_NAME in pyproject["tool"].keys():
+            inputs_to_change = pyproject["tool"][LIBRARY_NAME].keys()
+            if "refers_path" in inputs_to_change:
+                rootdir_tmp = Path(pyproject["tool"][LIBRARY_NAME]["refers_path"])
+                if rootdir_tmp.exists():
+                    rootdir = rootdir_tmp
+                else:  # refers_path is defined in relation to pyproject_path
+                    rootdir = rootdir / rootdir_tmp
+            if "allow_not_found_tags" in inputs_to_change:
                 allow_not_found_tags = pyproject["tool"][LIBRARY_NAME][
                     "allow_not_found_tags"
                 ]
-            if (
-                "dirs2ignore" in pyproject["tool"][LIBRARY_NAME].keys()
-                and dirs2ignore is None
-            ):
+            if "dirs2ignore" in inputs_to_change and dirs2ignore is None:
                 dirs2ignore = [
                     Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2ignore"]
                 ]
-            if (
-                "dirs2search" in pyproject["tool"][LIBRARY_NAME].keys()
-                and dirs2search is None
-            ):
+            if "dirs2search" in inputs_to_change and dirs2search is None:
                 dirs2search = [
                     Path(f) for f in pyproject["tool"][LIBRARY_NAME]["dirs2search"]
                 ]
-            if (
-                "ref_files" in pyproject["tool"][LIBRARY_NAME].keys()
-                and ref_files is None
-            ):
+            if "ref_files" in inputs_to_change and ref_files is None:
                 ref_files = [
                     Path(f) for f in pyproject["tool"][LIBRARY_NAME]["ref_files"]
                 ]
-            if (
-                "tag_files" in pyproject["tool"][LIBRARY_NAME].keys()
-                and tag_files is None
-            ):
+            if "tag_files" in inputs_to_change and tag_files is None:
                 tag_files = [
                     Path(f) for f in pyproject["tool"][LIBRARY_NAME]["tag_files"]
                 ]
             if (
-                "accepted_tag_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                "accepted_tag_extensions" in inputs_to_change
                 and accepted_tag_extensions is None
             ):
                 accepted_tag_extensions = pyproject["tool"][LIBRARY_NAME][
-                    "accepted_mime_tag_types"
+                    "accepted_tag_extensions"
                 ]
             if (
-                "accepted_ref_extensions" in pyproject["tool"][LIBRARY_NAME].keys()
+                "accepted_ref_extensions" in inputs_to_change
                 and accepted_ref_extensions is None
             ):
                 accepted_ref_extensions = pyproject["tool"][LIBRARY_NAME][
