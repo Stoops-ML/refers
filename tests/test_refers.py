@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import pytest
+
 from refers.definitions import COMMENT_SYMBOL
 from refers.errors import MultipleTagsInOneLine
 from refers.errors import OptionNotFoundError
@@ -729,10 +730,7 @@ def test_replace_tags_tag_not_found(create_tmp_file):
             False,
             [".md"],
         )
-        assert (
-            re.search(r"^Tag c and keyword  not found\.", str(exc_info.value))
-            is not None
-        )
+    assert "Tag c not found" == str(exc_info.value)
 
 
 @pytest.mark.parametrize(
