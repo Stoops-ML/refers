@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import pytest
+
 from refers.definitions import COMMENT_SYMBOL
 from refers.errors import MultipleTagsInOneLine
 from refers.errors import OptionNotFoundError
@@ -313,6 +314,109 @@ def f3():
     indirect=True,
 )
 def test_format_doc_full_path(check_refers_test_files: Path):
+    format_doc(check_refers_test_files)
+
+
+@pytest.mark.parametrize(
+    "create_files",
+    [
+        (
+            (
+                "file_with_refs.md",
+                """# Test file
+Function `f` has a comment: @ref:f_a:link and  and @ref:f_a
+Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and  and @ref:f_a and @ref:f_a:quotecode
+""",
+            ),
+            (
+                "file_with_tags.py",
+                """def f():
+    a = 1  # @tag:f_a this is a comment
+    return a
+def f1():
+    a = 1  # @tag:a this is a comment
+    return a
+def f2():
+    b = 1  # @tag:b this is a comment
+    return a
+def f3():
+    a = 1  # @tag:d this is a comment
+    return a
+""",
+            ),
+            (
+                "file_no_refs.py",
+                "# This is a test file with no refs",
+            ),
+        ),
+    ],
+    indirect=True,
+)
+def test_format_doc_pyproject_rootdir_noexist(create_files: Path):
+    refers_path = "DIR_NO_EXIST"
+    assert not Path(refers_path).exists()
+    with open(create_files / "pyproject.toml", "w") as f:
+        f.write(
+            f"""[tool.refers]
+refers_path = "{refers_path}"
+accepted_tag_extensions = [".py"]
+accepted_ref_extensions = [".md"]"""
+        )
+    with pytest.raises(ValueError) as exc_info:
+        format_doc(create_files)
+    assert (
+        re.search(
+            rf"^The root directory does not exist: .+{refers_path}\.",
+            str(exc_info.value),
+        )
+        is not None
+    )
+
+
+@pytest.mark.parametrize(
+    "check_refers_test_files",
+    [
+        (
+            (
+                "file_with_refs.md",
+                """# Test file
+Function `f` has a comment: @ref:f_a:link and  and @ref:f_a
+Function `f` has a comment: @ref:f_a:line in the [file](@ref:f_a:link) and  and @ref:f_a and @ref:f_a:quotecode
+""",
+            ),
+            (
+                "file_with_tags.py",
+                """def f():
+    a = 1  # @tag:f_a this is a comment
+    return a
+def f1():
+    a = 1  # @tag:a this is a comment
+    return a
+def f2():
+    b = 1  # @tag:b this is a comment
+    return a
+def f3():
+    a = 1  # @tag:d this is a comment
+    return a
+""",
+            ),
+            (
+                "file_no_refs.py",
+                "# This is a test file with no refs",
+            ),
+        ),
+    ],
+    indirect=True,
+)
+def test_format_doc_pyproject(check_refers_test_files: Path):
+    refers_path = str(check_refers_test_files).replace("\\", "/")
+    with open(check_refers_test_files / "pyproject.toml", "w") as f:
+        f.write(
+            f"""[tool.refers]
+refers_path = "{refers_path}"
+accepted_tag_extensions = [".py"]
+accepted_ref_extensions = [".md"]"""
+        )
     format_doc(check_refers_test_files)
 
 
@@ -729,10 +833,7 @@ def test_replace_tags_tag_not_found(create_tmp_file):
             False,
             [".md"],
         )
-        assert (
-            re.search(r"^Tag c and keyword  not found\.", str(exc_info.value))
-            is not None
-        )
+    assert "Tag c not found" == str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -753,8 +854,7 @@ d = 1  # @tag:d
                 """# Test file
 On line [@ref:a:line1](@ref:a:linkline) the code has @ref:a:quotecode. This is it's link: @ref:a:link.
 `b` appears in @ref:b, is located @ref:b:fulllink and has contents: @ref:b:quote.
-`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline
-There is no tag for 'c': @ref:c""",
+`d` appears in file @ref:d:file, which has a relative path one parent up of  and a relative path three parents up of . The full link with line is @ref:d:fulllinkline""",
             ),
         )
     ],
@@ -769,10 +869,10 @@ def test_replace_tags_option_not_found(create_tmp_file):
             False,
             [".md"],
         )
-        assert (
-            re.search(r"^Tag c and keyword  not found\.", str(exc_info.value))
-            is not None
-        )
+    assert (
+        "Option :line1 of tag a not found. Possible options: ['class', 'default', 'file', 'full_line', 'fulllink', 'fulllinkline', 'func', 'line', 'line_num', 'line_num_end', 'line_num_start', 'link', 'linkline', 'name', 'quote', 'quotecode', 'unknown_tag']"
+        == str(exc_info.value)
+    )
 
 
 @pytest.mark.parametrize(

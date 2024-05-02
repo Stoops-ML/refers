@@ -1,7 +1,7 @@
 # Example 1
 This document demonstrates the `refers` library in action.
 
-Run `refers -r example1` in command prompt to output the file [readme_refers.md](readme_refers.md), which will convert the references using the requested tags.
+Run `refers -r example1` in command prompt to output the file [readme_refers.md](readme_refers.md), which will convert the referenced tag using the option.
 
 ## Demonstration
 The file [@ref:dist_eq:file](@ref:dist_eq:link) is a script that simulates linear motion.

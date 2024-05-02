@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "refers"
-version = "0.0.3"
+version = "0.0.4"
 description = "Reference code to improve explainability"
 authors = ["Daniel Stoops <danielstoops25@gmail.com>"]
 readme = "README.md"
@@ -51,7 +51,7 @@ no_implicit_reexport = true
 testpaths = "tests"
 addopts = [
     "--cov=refers",
-    "--cov-fail-under=75",
+    "--cov-fail-under=81",
     "--cov-report=term-missing",
     "--cov-report=term",
     "--cov-report="
